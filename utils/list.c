@@ -24,7 +24,7 @@ list_node_t *list_node_create(void *content) {
 /* List Functions */
 
 void list_init(list_t **list) {
-    (*list) = (list_t *)malloc(sizeof(list));
+    (*list) = (list_t *)malloc(sizeof(list_t));
 
     /* It checks if the list has not been allocated */
     if (!(*list)) {
