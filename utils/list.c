@@ -62,11 +62,12 @@ list_node_t *list_remove_head(list_t *list) {
             list->head->next->prev = NULL;
         else list->tail = NULL;
         list->head = list->head->next;
+
+        /* Detach the node from the list */
+        temp->next = NULL;
+        temp->prev = NULL;
     }
 
-    /* Detach the node from the list */
-    temp->next = NULL;
-    temp->prev = NULL;
     return temp;
 }
 
