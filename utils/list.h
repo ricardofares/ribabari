@@ -84,6 +84,16 @@ void list_add(list_t *list, void *content);
 list_node_t *list_remove_head(list_t *list);
 
 /**
+ * It removes the list tail and
+ * returns the node there located.
+ *
+ * @param list the list
+ *
+ * @return the removed tail node
+ */
+list_node_t *list_remove_tail(list_t *list);
+
+/**
  * It releases the memory allocated
  * to the list.
  *

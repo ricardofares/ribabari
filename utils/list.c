@@ -70,6 +70,23 @@ list_node_t *list_remove_head(list_t *list) {
     return temp;
 }
 
+list_node_t *list_remove_tail(list_t *list) {
+    list_node_t *temp = list->tail;
+
+    if (list->tail) {
+        if (list->tail->prev)
+            list->tail->prev->next = NULL;
+        else list->head = NULL;
+        list->tail = list->tail->prev;
+
+        /* Detach the node from the list */
+        temp->next = NULL;
+        temp->prev = NULL;
+    }
+
+    return temp;
+}
+
 void list_free(list_t *list) {
     if (list) {
         list_node_t *curr = list->head;
