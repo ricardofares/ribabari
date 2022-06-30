@@ -34,13 +34,15 @@ synth_prog_t *synth_prog_create() {
     prog->segment_size = -1;
     prog->sched_priority = -1;
     prog->semaphores = NULL;
-    prog->code = NULL;
+    prog->code = (instr_t *)calloc(0, sizeof(instr_t));
+    prog->codelen = 0;
     return prog;
 }
 
 void synth_prog_populate(synth_prog_t *prog, FILE *f) {
     const int buflen = 256;
     char buf[buflen];
+    int codelen;
 
     /* Name populating */
     fgets(buf, buflen, f);
@@ -64,8 +66,34 @@ void synth_prog_populate(synth_prog_t *prog, FILE *f) {
     prog->semaphores = (char *) malloc(sizeof(char) * strlen(buf));
     strcpy(prog->semaphores, buf);
     rem_inner_ws(prog->semaphores);
+
+    /* Jump the blank line */
+    fgets(buf, buflen, f);
+
+    codelen = 0;
+    while (fgets(buf, buflen, f)) {
+        /* Jump new lines */
+        if (buf[0] == '\n')
+            continue;
+        buf[strlen(buf) - 1] = '\0';
+        codelen++;
+        prog->code = (instr_t *)realloc(prog->code, sizeof(instr_t) * codelen);
+        instr_parse(&prog->code[codelen - 1], buf);
+    }
+
+    prog->codelen = codelen;
 }
 
+/**
+ * It removes all inner whitespaces
+ * contained in the specified string.
+ *
+ * @param s the string to have its inner
+ *          whitespaces removed.
+ *
+ * @return the length of the string without
+ *         the whitespaces.
+ */
 int rem_inner_ws(char *s) {
     const size_t slen = strlen(s);
     int i = 0;

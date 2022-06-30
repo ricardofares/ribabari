@@ -1,18 +1,7 @@
 #ifndef OS_PROJECT_SYNTH_READER_H
 #define OS_PROJECT_SYNTH_READER_H
 
-/**
- * A synthetic program instruction. Every instruction
- * is unary or binary and, when it is binary the left
- * operator is a string and the second one is an integer.
- * Further, when it is unary only the left operator
- * holds the instruction information.
- */
-typedef struct Instruction {
-    char *left_op;
-    int right_op;
-    int unary; /* act as a boolean */
-} instr_t;
+#include "instr_parser.h"
 
 /**
  * A synthetic program. This contains all
@@ -26,7 +15,11 @@ typedef struct SynthProg {
     long int segment_size; /* kilobytes (kb) */
     char *semaphores;
 
+    /**
+     * It contains the program code.
+     */
     instr_t *code;
+    int codelen;
 } synth_prog_t;
 
 /* Synthetic Program Prototypes */
