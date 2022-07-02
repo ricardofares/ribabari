@@ -8,64 +8,55 @@
 
 typedef struct menu_window_t {
     WINDOW *main_window;
+    WINDOW *title_window;
     WINDOW *sub_window;
     int height;
     int width;
     int begin_y;
     int begin_x;
+    char *name;
 } menu_window_t;
 
-char *choices[] = {
-    "Criar Processo", 
-    "Ver tabela de processos",
-    "Sair"
-};
+#define EXIT "Sair"
+char *main_choices[] = {"Criar Processo", "Ver tabela de processos", EXIT};
+char *proc_choices[] = {"Deletar Processo", EXIT};
 
 void print_item_index(const ITEM *item);
 void main_menu_loop(MENU *main_menu, WINDOW *window);
 void init_screen();
 void init_colors();
 menu_window_t *init_menu_window_t(int height, int width, int begin_y,
-                                  int begin_x);
-void cfg_menu_window(MENU* menu, menu_window_t* menu_window);
+                                  int begin_x, char *name);
+void cfg_menu_window(MENU *menu, menu_window_t *menu_window);
+void start_menu_and_loop(MENU *menu, menu_window_t *menu_window, void (*function_loop)(MENU*, WINDOW*));
+void print_welcome();
 
 int main() {
-    ITEM **my_items;
-    int c;
-
-    MENU *my_menu;
-    int n_choices, i;
-
     /* Initialize curses */
     init_screen(0);
 
-    mvprintw(LINES - 3, 0, "Press <ENTER> to see the option selected");
-    mvprintw(LINES - 2, 0, "Up and Down arrow keys to navigate.");
+    print_welcome();
 
     ITEM **anothers_items = (ITEM **)calloc(4, sizeof(ITEM *));
+    for (int i = 0; i < ARRAY_SIZE(main_choices); i++) {
+        anothers_items[i] = new_item(main_choices[i], "");
+    }
+    MENU *main_menu = new_menu(anothers_items);
 
-    MENU *another_menu = new_menu(anothers_items);
-
-    int win_height = 7;
+    int win_height = 9;
     int win_width = 70;
+    menu_window_t *main_menu_window =
+        init_menu_window_t(win_height, win_width, (LINES - win_height) / 2,
+                           (COLS - win_width) / 2, "Menu Principal");
 
-    menu_window_t* menu_window = init_menu_window_t(win_height, win_width, (LINES - win_height) / 2,
-            (COLS - win_width) / 2);
+    cfg_menu_window(main_menu, main_menu_window);
+    start_menu_and_loop(main_menu, main_menu_window, main_menu_loop);
 
-    cfg_menu_window(another_menu, menu_window);
+    delwin(main_menu_window->main_window);
 
-    refresh();
-    post_menu(another_menu);
-    wrefresh(menu_window->main_window);
-
-    main_menu_loop(another_menu, menu_window->main_window);
-
-    unpost_menu(another_menu);
-    delwin(menu_window->main_window);
-
-    for (i = 0; i < n_choices; ++i)
-        free_item(my_items[i]);
-    free_menu(my_menu);
+    for (int i = 0; i < ARRAY_SIZE(main_choices); ++i)
+        free_item(anothers_items[i]);
+    free_menu(main_menu);
     endwin();
 }
 
@@ -105,7 +96,7 @@ void main_menu_loop(MENU *main_menu, WINDOW *window) {
         case ENTER_KEY: {
             ITEM *cur = current_item(main_menu);
 
-            if (!strcmp(item_name(cur), "Exit")) {
+            if (!strcmp(item_name(cur), EXIT)) {
                 return;
             }
 
@@ -121,25 +112,57 @@ void main_menu_loop(MENU *main_menu, WINDOW *window) {
 }
 
 menu_window_t *init_menu_window_t(int height, int width, int begin_y,
-                                  int begin_x) {
-    int box_offset = 2;
+                                  int begin_x, char *name) {
+
     WINDOW *new_window = newwin(height, width, begin_y, begin_x);
-    WINDOW *sub_window =
-        derwin(new_window, height - box_offset, width - box_offset, 2, 2);
+
+    const int title_height = 3;
+    WINDOW *title_window = derwin(new_window, title_height, width, 0, 0);
+
+    /* Create Boxes around windows */
+    box(title_window, 0, 0);
     box(new_window, 0, 0);
 
-    menu_window_t* new_menu_window = (menu_window_t*) malloc(sizeof(menu_window_t));
-    new_menu_window->main_window = new_window;
-    new_menu_window->sub_window = sub_window;
-    new_menu_window->height = height;
-    new_menu_window->width = width;
-    new_menu_window->begin_y = begin_y;
-    new_menu_window->begin_x = begin_x;
+    int title_offset = 4;
+    int box_offset = 2;
+    WINDOW *sub_window = derwin(new_window, height - title_offset,
+                                width - box_offset, title_offset, box_offset);
+
+    const int title_middle_y = 1;
+    mvwaddstr(title_window, title_middle_y, (width - sizeof(name) - box_offset) / 2,
+              name);
+
+    menu_window_t *new_menu_window =
+        (menu_window_t *)malloc(sizeof(menu_window_t));
+    (*new_menu_window) = (menu_window_t) {
+        .main_window = new_window,
+        .title_window = title_window,
+        .sub_window = sub_window,
+        .height = height,
+        .width = width,
+        .begin_y = begin_y,
+        .begin_x = begin_x,
+        .name = strdup(name)
+    };
 
     return new_menu_window;
 }
 
-void cfg_menu_window(MENU* menu, menu_window_t* menu_window) {
+void cfg_menu_window(MENU *menu, menu_window_t *menu_window) {
     set_menu_win(menu, menu_window->main_window);
     set_menu_sub(menu, menu_window->sub_window);
+}
+
+void start_menu_and_loop(MENU *menu, menu_window_t *menu_window, void (*function_loop)(MENU*, WINDOW*)) {
+    refresh();
+    post_menu(menu);
+    wrefresh(menu_window->main_window);
+
+    (*function_loop)(menu, menu_window->main_window);
+    unpost_menu(menu);
+}
+
+void print_welcome() {
+    mvprintw(LINES - 3, 0, "Press <ENTER> to see the option selected");
+    mvprintw(LINES - 2, 0, "Up and Down arrow keys to navigate.");
 }
