@@ -1,8 +1,8 @@
 CC=gcc
-CFLAGS=-I. -lncurses -lmenu
+CFLAGS=-lcurses -lmenu
 
-all: main.c
-	$(CC) -o main main.c $(CFLAGS)
+all: 
+	$(CC) -o main main.c terminal/terminal.c $(CFLAGS)
 
 run: all
 	./main
