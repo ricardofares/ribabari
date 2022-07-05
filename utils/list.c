@@ -40,17 +40,18 @@ list_node_t *list_node_create(void *content) {
  *
  * @param list the list
  */
-void list_init(list_t **list) {
-    (*list) = (list_t *)malloc(sizeof(list_t));
+list_t* list_init() {
+    list_t* list = (list_t *)malloc(sizeof(list_t));
 
     /* It checks if the list has not been allocated */
-    if (!(*list)) {
+    if (!list) {
         printf("Not enough memory to allocate a list!\n");
-        return;
+        exit(0);
     }
 
-    (*list)->head = NULL;
-    (*list)->tail = NULL;
+    list->head = NULL;
+    list->tail = NULL;
+    return list;
 }
 
 /**

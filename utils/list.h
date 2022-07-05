@@ -60,10 +60,8 @@ list_node_t *list_node_create(void *content);
 
 /**
  * It initializes the list.
- *
- * @param list the list
  */
-void list_init(list_t **list);
+list_t* list_init();
 
 /**
  * It adds the content at the end of
