@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(so_project C)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
 include_directories(utils)
 
@@ -9,7 +10,12 @@ add_executable(so_project
         main.c
         utils/list.c
         utils/list.h
-        synth/synth.c
-        synth/synth.h
-        synth/instr_parser.c
-        synth/instr_parser.h)
+        kernel/kernel.c
+        kernel/kernel.h
+        memory/memory.c
+        memory/memory.h
+        process/process.c
+        process/process.h
+        sched/sched.c
+        sched/sched.h
+        )

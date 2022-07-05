@@ -81,6 +81,17 @@ void list_add(list_t *list, void *content) {
 }
 
 /**
+ * It returns 1 if the list is empty.
+ * Otherwise, it returns 0.
+ *
+ * @return 1 if the list is empty;
+ *         otherwise, it returns 0.
+ */
+int list_empty(list_t *list) {
+    return list->head == NULL;
+}
+
+/**
  * It removes the list head and
  * returns the node there located.
  *

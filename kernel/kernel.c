@@ -4,8 +4,6 @@
 #define DEBUG 1
 #include "kernel.h"
 
-kernel_t* kernel;
-
 /* Internal Function Prototypes */
 
 void process_created(const char* filename);
@@ -32,6 +30,8 @@ void kernel_init() {
         printf("Not enough memory to allocate the scheduler.\n");
         exit(0);
     }
+
+    scheduler_init();
 
 #if DEBUG
     printf("Scheduler initialized.\n");
@@ -78,7 +78,7 @@ process_t* parse_synthetic_program(const char* filepath) {
     /* Non-dependent file information */
     proc->pc = 0;
     proc->state = NEW;
-    proc->time_run = 0;
+    proc->remaining = 0;
 
     /* Dependent file information */
     fgets(buf, buflen, fp);

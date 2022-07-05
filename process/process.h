@@ -20,7 +20,7 @@ typedef struct Process {
 
     /* Scheduling Information */
     int priority;
-    int time_run;
+    int remaining;
     process_state_t state;
 
     /* Resource Acquisition Information */
