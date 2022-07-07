@@ -4,6 +4,7 @@
 #include "../process/process.h"
 #include "../memory/memory.h"
 #include "../sched/sched.h"
+#include "../semaphore/semaphore.h"
 
 typedef enum KernelFunction {
     /* Process Related Functions */
@@ -36,6 +37,10 @@ typedef struct Kernel {
     process_t* proc_table;
     segment_t* segment_table;
     scheduler_t* scheduler;
+
+    /* Semaphore Table Information */
+    semaphore_t* sem_table;
+    int sem_table_len;
 
     int pc; /* Program Counter */
 } kernel_t;

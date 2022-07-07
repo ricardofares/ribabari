@@ -36,6 +36,20 @@ void kernel_init() {
 #if DEBUG
     printf("Scheduler initialized.\n");
 #endif // DEBUG
+
+    kernel->sem_table = (semaphore_t *)malloc(0);
+
+    /* It checks if the semaphore table could not be allocated */
+    if (!kernel->sem_table) {
+        printf("Not enough memory to allocate the semaphore table.\n");
+        exit(0);
+    }
+
+    kernel->sem_table_len = 0;
+
+#if DEBUG
+    printf("Semaphore table initialized.\n");
+#endif // DEBUG
 }
 
 void sysCall(kernel_function_t func, void *arg) {
