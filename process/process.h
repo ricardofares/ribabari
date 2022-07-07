@@ -1,6 +1,21 @@
 #ifndef OS_PROJECT_PROCESS_H
 #define OS_PROJECT_PROCESS_H
 
+typedef enum Opcode {
+    EXEC,
+    READ,
+    WRITE,
+    PRINT,
+    SEM_P,
+    SEM_V
+} opcode_t;
+
+typedef struct Instruction {
+    opcode_t op;
+    int value;
+    char* sem;
+} instr_t;
+
 typedef enum ProcessState {
     NEW,
     BLOCKED,
