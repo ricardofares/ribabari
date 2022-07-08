@@ -74,6 +74,22 @@ list_t* list_init();
 void list_add(list_t *list, void *content);
 
 /**
+ * It returns a list node if the matcher matches
+ * the specified content with that in the node.
+ * If does not any node has been matched, then
+ * NULL is returned.
+ *
+ * @param list the list
+ * @param content the content to be matched
+ * @param matcher the matcher
+ *
+ * @return a list node if some node in the list
+ *         has been matched; otherwise NULL.
+ *
+ */
+list_node_t *list_search(list_t *list, void *content, int (*matcher)(void *, void *));
+
+/**
  * It returns 1 if the list is empty.
  * Otherwise, it returns 0.
  *
@@ -99,6 +115,15 @@ list_node_t *list_remove_head(list_t *list);
  * @return the removed tail node
  */
 list_node_t *list_remove_tail(list_t *list);
+
+/**
+ * It removes the node from the list.
+ *
+ * @param list the list to have its
+ *             node removed
+ * @param node the node to be removed
+ */
+void list_remove_node(list_t *list, list_node_t *node);
 
 /**
  * It releases the memory allocated

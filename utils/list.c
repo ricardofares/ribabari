@@ -81,6 +81,28 @@ void list_add(list_t *list, void *content) {
 }
 
 /**
+ * It returns a list node if the matcher matches
+ * the specified content with that in the node.
+ * If does not any node has been matched, then
+ * NULL is returned.
+ *
+ * @param list the list
+ * @param content the content to be matched
+ * @param matcher the matcher
+ *
+ * @return a list node if some node in the list
+ *         has been matched; otherwise NULL.
+ *
+ */
+list_node_t *list_search(list_t *list, void *content, int (*matcher)(void *, void *)) {
+    list_node_t* matched;
+    for (matched = list->head; matched != NULL; matched = matched->next)
+        if (matcher(matched->content, content))
+            return matched;
+    return NULL;
+}
+
+/**
  * It returns 1 if the list is empty.
  * Otherwise, it returns 0.
  *
@@ -112,6 +134,23 @@ list_node_t *list_remove_head(list_t *list) {
     }
 
     return temp;
+}
+
+/**
+ * It removes the node from the list.
+ *
+ * @param list the list to have its
+ *             node removed
+ * @param node the node to be removed
+ */
+void list_remove_node(list_t *list, list_node_t *node) {
+    if (node->prev)
+        node->prev->next = node->next;
+    else if (list->head == node) list->head = node->next;
+
+    if (node->next)
+        node->next->prev = node->prev;
+    else if (list->tail == node) list->tail = node->prev;
 }
 
 /**
