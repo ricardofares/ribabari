@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "semaphore.h"
 
 /**
@@ -7,9 +9,11 @@
  * is non NULL.
  *
  * @param sem the semaphore to be initialized
+ * @param name the semaphore name
  * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, const int S) {
+void semaphore_init(semaphore_t* sem, const char* name, const int S) {
+    sem->name = strdup(name);
     sem->S = S;
     sem->waiters = list_init();
 }

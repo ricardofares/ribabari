@@ -5,6 +5,13 @@
 
 typedef struct Semaphore {
     /**
+     * It represents the semaphore
+     * name. Further, it is used
+     * as identifier.
+     */
+    char *name;
+
+    /**
      * It represents the current
      * semaphore value in which
      * may or not be positive.
@@ -27,8 +34,9 @@ typedef struct Semaphore {
  * is non NULL.
  *
  * @param sem the semaphore to be initialized
+ * @param name the semaphore name
  * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, int S);
+void semaphore_init(semaphore_t* sem, const char* name, int S);
 
 #endif // OS_PROJECT_SEMAPHORE_H
