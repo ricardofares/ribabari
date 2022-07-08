@@ -45,6 +45,17 @@ typedef struct menu_t {
     menu_window_t* menu_window;
 } menu_t;
 
+typedef struct {
+    int begin_y;
+    int begin_x;
+} coordinates_t;
+
+typedef struct {
+    WINDOW* main_window;
+    WINDOW* text_window;
+    WINDOW* title_window;
+} io_window_t;
+
 #define MAIN_MENU(M)                                                           \
     M("Criar processo", CREATE)                                                \
     M("Destruir Processo", DELETE)                                             \
@@ -79,3 +90,4 @@ void delete_menu(menu_t* menu);
 void free_menu_window(menu_window_t* menu_window);
 
 #endif // OS_PROJECT_TERMINAL_H
+

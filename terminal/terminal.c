@@ -1,5 +1,6 @@
 #include "terminal.h"
 
+
 #define SI(S, V) {S, V},
 int begin_terminal() {
     /* Initialize curses */
@@ -42,7 +43,7 @@ menu_t* create_menu(int choices_count,
     menu->items = (ITEM**)calloc(menu->choices_count + 1, sizeof(ITEM*));
 
     for (int i = 0; i < menu->choices_count; i++) {
-        menu->items[i] = new_item(menu->choices[i].text, ""); 
+        menu->items[i] = new_item(menu->choices[i].text, "");
     }
 
     menu->curses_menu = new_menu(menu->items);
@@ -161,12 +162,15 @@ void print_welcome() {
     mvprintw(LINES - 3, 0, "Press <ENTER> to see the option selected");
     mvprintw(LINES - 2, 0, "Up and Down arrow keys to navigate.");
 }
+
 int get_type_from_string(menu_t* menu, const char* buffer) {
     for (int i = 0; i < menu->choices_count; i++) {
         if (!strcmp(menu->choices[i].text, buffer)) {
             return menu->choices[i].value;
         }
     }
+
+    return -1;
 }
 
 const char* get_string_from_type(menu_t* menu, int type) {
@@ -209,3 +213,101 @@ void free_menu_window(menu_window_t* menu_window) {
     delwin(menu_window->title_win);
     delwin(menu_window->main_win);
 }
+
+
+
+void input_refresh(io_window_t* input_win) {
+    refresh();
+    wrefresh(input_win->main_window);
+    wrefresh(input_win->text_window);
+    wrefresh(input_win->title_window);
+    refresh();
+}
+
+void del_io_window(io_window_t* input_win) {
+    delwin(input_win->text_window);
+    delwin(input_win->title_window);
+
+    wclear(input_win->main_window);
+    wrefresh(input_win->main_window);
+
+    delwin(input_win->main_window);
+}
+
+char* get_input_from_window(char* title, coordinates_t coordinates,
+                            int buffer_size) {
+    io_window_t io_win;
+    echo();
+    cbreak();
+
+    const int box_size = 2;
+    const int title_len = strlen(title);
+    io_win.main_window = newwin(5, buffer_size + box_size, coordinates.begin_y,
+                                coordinates.begin_x);
+
+    mvwprintw(io_win.main_window, 1,
+              (buffer_size + box_size - strlen(title)) / 2, "%s", title);
+
+    const int title_window_height = 3;
+    io_win.title_window = derwin(io_win.main_window, title_window_height,
+                                 buffer_size + box_size, 0, 0);
+
+    box(io_win.title_window, 0, 0);
+    box(io_win.main_window, 0, 0);
+
+    io_win.text_window = derwin(io_win.main_window, 1, buffer_size + 1, 3, 1);
+
+    input_refresh(&io_win);
+
+    char* buffer = (char*)malloc(buffer_size);
+    wmove(io_win.text_window, 0, 0);
+    wgetnstr(io_win.text_window, buffer, buffer_size);
+
+    input_refresh(&io_win);
+
+    del_io_window(&io_win);
+
+    noecho();
+    nocbreak();
+    return buffer;
+}
+
+void print_with_window(char* string, char* title) {
+    io_window_t io_win;
+
+
+    int box_size = 2;
+    int string_len = strlen(string);
+    int title_len = strlen(title);
+    int window_width;
+
+    if (string_len > title_len) {
+        window_width = string_len + box_size;
+    } else {
+        window_width = title_len + box_size;
+    }
+
+    int window_height = 5;
+    io_win.main_window
+        = newwin(window_height, window_width, (LINES - window_height) / 2,
+                 (COLS - window_width) / 2);
+
+    int title_height = 3;
+    io_win.title_window = derwin(io_win.main_window, 3, window_width, 0, 0);
+    io_win.text_window = derwin(io_win.main_window, 1, window_width - 2, 3, 1);
+    input_refresh(&io_win);
+
+    box(io_win.title_window, 0, 0);
+    box(io_win.main_window, 0, 0);
+
+    mvwprintw(io_win.title_window, 1, (window_width - title_len) / 2, "%s",
+              title);
+    mvwprintw(io_win.text_window, 0, (window_width - 2 - string_len) / 2, "%s",
+              string);
+
+    input_refresh(&io_win);
+
+    getch();
+    del_io_window(&io_win);
+}
+
