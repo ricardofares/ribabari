@@ -145,6 +145,7 @@ process_t* parse_synthetic_program(const char* filepath) {
 
     /* Dependent file information */
     fgets(buf, buflen, fp);
+    buf[strlen(buf) - 1] = '\0';
     proc->name = strdup(buf);
 
     fgets(buf, buflen, fp);
@@ -157,6 +158,7 @@ process_t* parse_synthetic_program(const char* filepath) {
     proc->seg_size = atoi(buf);
 
     fgets(buf, buflen, fp);
+    buf[strlen(buf) - 1] = '\0';
     /* It checks if there are semaphores to be read */
     if (strcmp(buf, "\n") != 0)
         read_semaphores(proc, buf);
