@@ -1,8 +1,9 @@
 CC=gcc
-CFLAGS=-lcurses -lmenu
+CFLAGS=-I. -lcurses -lmenu -lpthread
+SOURCES = $(wildcard *.c) $(wildcard */*c)
 
 all: 
-	$(CC) -o main main.c terminal/terminal.c $(CFLAGS)
+	$(CC) -o main $(SOURCES) $(CFLAGS)
 
 run: all
 	./main
