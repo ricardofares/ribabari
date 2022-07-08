@@ -27,6 +27,7 @@ typedef enum ProcessState {
 typedef struct Process {
     /* General Information */
     char *name;
+    int id;
     int pc; /* Program Counter */
 
     /* Memory Information */
