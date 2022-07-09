@@ -6,7 +6,11 @@
 
 #include "sched.h"
 
-/* Internal Function Prototypes */
+/* Scheduler Internal Function Prototypes */
+
+static int proc_cmp(void* p1, void *p2) {
+    return ((process_t *) p1)->id == ((process_t *) p2)->id;
+}
 
 /**
  * It creates a scheduler queue containing
@@ -21,7 +25,7 @@
  */
 scheduler_queue_t* create_queue(int quantum);
 
-/* Function Definitions */
+/* Scheduler Function Definitions */
 
 /**
  * It initializes the scheduler.
@@ -80,7 +84,23 @@ void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags) {
     scheduler->scheduled_proc = new_scheduled;
 }
 
-/* Internal Function Definitions */
+/**
+ * It wakes up the specified process.
+ *
+ * @param scheduler the scheduler
+ * @param proc the process
+ */
+void schedule_wake_process(scheduler_t* scheduler, process_t* proc) {
+    list_node_t* proc_node;
+
+    if (!(proc_node = list_search(scheduler->blocked_queue->queue, proc, proc_cmp)))
+        return;
+
+    list_remove_node(scheduler->blocked_queue->queue, proc_node);
+    list_add(scheduler->high_queue->queue, proc);
+}
+
+/* Scheduler Internal Function Definitions */
 
 /**
  * It creates a scheduler queue containing

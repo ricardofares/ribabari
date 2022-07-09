@@ -71,4 +71,12 @@ void scheduler_init(scheduler_t* scheduler);
  */
 void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags);
 
+/**
+ * It wakes up the specified process.
+ *
+ * @param scheduler the scheduler
+ * @param proc the process
+ */
+void schedule_wake_process(scheduler_t* scheduler, process_t* proc);
+
 #endif // OS_PROJECT_SCHED_H

@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include <pthread.h>
 
 #include "kernel/kernel.h"
@@ -11,69 +10,44 @@ int int_matcher(void *a, void *b) {
     return ((int) a) == ((int) b);
 }
 
-long long int ns_last_execution;
-long long int t;
-int a = 1;
-int b = 5;
+typedef long double d64;
+d64 lastTick = 0.0;
+d64 currentTick = 0.0;
 
-void cpu() {
-    printf("Test123\n");
+_Noreturn void cpu() {
     while (1) {
-        if (ns_last_execution < 100000000) {
-            ns_last_execution++;
-            continue;
-        } else {
-            ns_last_execution = 0;
-            t++;
-        }
-
+        /* It checks if there is no kernel set */
         if (!kernel) {
-            printf("No kernel.\n");
-            continue;
+            printf("No kernel has been found.\n");
+            exit(0);
         }
 
-        if ((t % b) == 0 && a) {
-            ns_last_execution = 0;
-            b *= 5;
-//            schedule_process(kernel->scheduler, IO_REQUESTED);
-//
-//            if (kernel->scheduler->scheduled_proc)
-//                printf("(I/O REQUEST) Process %s has been scheduled.\n",
-//                       kernel->scheduler->scheduled_proc->name);
-//            else printf("No process has been scheduled.\n");
-            printf("Finishing the %s process...\n", kernel->scheduler->scheduled_proc->name);
-            sysCall(PROCESS_FINISH, (void *) kernel->scheduler->scheduled_proc);
-            continue;
-        }
-
-        /* No process has taken the CPU */
+        /* It checks if there is no scheduled proc */
         if (!kernel->scheduler->scheduled_proc) {
-            printf("No process to be executed.\n");
-            schedule_process(kernel->scheduler, 0);
+            printf("No process is running, then some will be scheduled.\n");
+            schedule_process(kernel->scheduler, NONE);
 
             if (kernel->scheduler->scheduled_proc)
-                printf("(NONE) Process %s has been scheduled.\n",
-                       kernel->scheduler->scheduled_proc->name);
-            else printf("No process has been scheduled (2).\n");
-            continue;
+                printf("Process %s has been scheduled.\n", kernel->scheduler->scheduled_proc->name);
+            else printf("No process has been found to be scheduled.\n");
         }
-
-        if (kernel->scheduler->scheduled_proc->remaining > 0) {
-            kernel->scheduler->scheduled_proc->remaining--;
-            printf("Remaining: %d (%s)\n",
-                   kernel->scheduler->scheduled_proc->remaining,
-                   kernel->scheduler->scheduled_proc->name);
-        }
+        /* There is some process running */
         else {
-            printf("Scheduling...\n");
-            schedule_process(kernel->scheduler, QUANTUM_COMPLETED);
+            do {
+                if ((currentTick - lastTick) >= 1000.0 * 1000.0 * 50.0) {
+                    kernel->scheduler->scheduled_proc->remaining--;
+                    printf("Process %s is running and has remaining %d u.t.\n",
+                           kernel->scheduler->scheduled_proc->name, kernel->scheduler->scheduled_proc->remaining);
+                    lastTick = currentTick;
+                }
 
-            if (kernel->scheduler->scheduled_proc)
-                printf("Process %s has been scheduled.\n",
-                   kernel->scheduler->scheduled_proc->name);
+                currentTick++;
+            } while (kernel->scheduler->scheduled_proc->remaining > 0);
+
+            /* Interrupt the current process to schedule another one, since the latter */
+            /* has completed its quantum time (or time slice) */
+            sysCall(PROCESS_INTERRUPT, (void *) QUANTUM_COMPLETED);
         }
-
-
     }
 }
 
