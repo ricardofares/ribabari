@@ -4,6 +4,7 @@
 #include <semaphore.h>
 
 #include "../utils/list.h"
+#include "../process/process.h"
 
 typedef struct Semaphore {
     /**
@@ -42,11 +43,6 @@ typedef struct SemaphoreTable {
     int len;
 } semaphore_table_t;
 
-#ifndef OS_SEM_PROCESS_LOADED
-#define OS_SEM_PROCESS_LOADED
-#include "../process/process.h"
-#endif // OS_SEM_PROCESS_LOADED
-
 /* Semaphore Function Prototypes */
 
 /**
@@ -84,7 +80,7 @@ void semaphore_register(semaphore_table_t* sem_table, const char* name);
 semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
 
 /**
- * It request access to the specified semaphore.
+ * It request an access to the specified semaphore.
  * If no resources is available then the current
  * process requesting the semaphore is blocked and
  * put into the semaphore's waiting list.
@@ -92,8 +88,22 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
  * @param sem a pointer to the semaphore
  * @param proc the process requesting access
  *             to this semaphore
+ * @param sleep a function whose invoke causes
+ *              the specified process to sleep
  */
-void semaphore_P(semaphore_t* sem);
+void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(process_t*));
+
+/**
+ * It releases an access to the specified semaphore.
+ * If there are pending processes waiting for some
+ * process to release its access, the least recently
+ * requested process will be woken up.
+ *
+ * @param sem a pointer to the semaphore
+ * @param wakeup a function whose invoke causes
+ *               a process to wake up
+ */
+void semaphore_V(semaphore_t* sem, void (*wakeup)(process_t*));
 
 /* Semaphore Table Function Prototypes */
 

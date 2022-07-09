@@ -82,11 +82,34 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name) {
  * @param proc the process requesting access
  *             to this semaphore
  */
-void semaphore_P(semaphore_t* sem) {
+void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(process_t*)) {
     sem_wait(&sem->mutex);
     sem->S--;
     if (sem->S < 0) {
+        list_add(sem->waiters, proc);
+        sleep(proc);
     }
+    sem_post(&sem->mutex);
+}
+
+/**
+ * It releases an access to the specified semaphore.
+ * If there are pending processes waiting for some
+ * process to release its access, the least recently
+ * requested process will be woken up.
+ *
+ * @param sem a pointer to the semaphore
+ * @param wakeup a function whose invoke causes
+ *               a process to wake up
+ */
+void semaphore_V(semaphore_t* sem, void (*wakeup)(process_t*)) {
+    sem_wait(&sem->mutex);
+    sem->S++;
+    if (sem->S <= 0) {
+        process_t* proc = list_remove_head(sem->waiters)->content;
+        wakeup(proc);
+    }
+    sem_post(&sem->mutex);
 }
 
 /* Semaphore Table Function Definitions */
