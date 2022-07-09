@@ -6,6 +6,7 @@
 #define DEBUG 1
 #include "kernel.h"
 
+
 /* Internal Function Prototypes */
 
 /**
@@ -103,7 +104,7 @@ void kernel_init() {
     printf("Process table initialized.\n");
 #endif // DEBUG
 
-    kernel->seg_table = list_init();
+    kernel->seg_table = init_segment_table();
 
 #if DEBUG
     printf("Segment table initialized.\n");
@@ -379,3 +380,4 @@ void process_finish(process_t* proc) {
 static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
 }
+
