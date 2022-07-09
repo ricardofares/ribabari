@@ -50,6 +50,18 @@ typedef struct SemaphoreTable {
 /* Semaphore Function Prototypes */
 
 /**
+ * It initializes the specified semaphore
+ * with the specified initial value. Further,
+ * it is supposed that the specified semaphore
+ * is non NULL.
+ *
+ * @param sem the semaphore to be initialized
+ * @param name the semaphore name
+ * @param S the initial semaphore value
+ */
+void semaphore_init(semaphore_t* sem, const char* name, int S);
+
+/**
  * It register the semaphore with the specified
  * semaphore name, however, if the semaphore
  * already exists, then nothing is done.
@@ -62,16 +74,14 @@ typedef struct SemaphoreTable {
 void semaphore_register(semaphore_table_t* sem_table, const char* name);
 
 /**
- * It initializes the specified semaphore
- * with the specified initial value. Further,
- * it is supposed that the specified semaphore
- * is non NULL.
+ * It returns a semaphore with the specified name if
+ * there is a semaphore in the semaphore table with
+ * that name. Otherwise, NULL is returned.
  *
- * @param sem the semaphore to be initialized
+ * @param sem_table the semaphore table
  * @param name the semaphore name
- * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, const char* name, int S);
+semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
 
 /**
  * It request access to the specified semaphore.

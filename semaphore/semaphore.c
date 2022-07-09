@@ -7,6 +7,23 @@
 /* Semaphore Function Definitions */
 
 /**
+ * It initializes the specified semaphore
+ * with the specified initial value. Further,
+ * it is supposed that the specified semaphore
+ * is non NULL.
+ *
+ * @param sem the semaphore to be initialized
+ * @param name the semaphore name
+ * @param S the initial semaphore value
+ */
+void semaphore_init(semaphore_t* sem, const char* name, const int S) {
+    sem->name = strdup(name);
+    sem->S = S;
+    sem->waiters = list_init();
+    sem_init(&sem->mutex, 0, 1);
+}
+
+/**
  * It register the semaphore with the specified
  * semaphore name, however, if the semaphore
  * already exists, then nothing is done.
@@ -40,20 +57,19 @@ void semaphore_register(semaphore_table_t* sem_table, const char* name) {
 }
 
 /**
- * It initializes the specified semaphore
- * with the specified initial value. Further,
- * it is supposed that the specified semaphore
- * is non NULL.
+ * It returns a semaphore with the specified name if
+ * there is a semaphore in the semaphore table with
+ * that name. Otherwise, NULL is returned.
  *
- * @param sem the semaphore to be initialized
+ * @param sem_table the semaphore table
  * @param name the semaphore name
- * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, const char* name, const int S) {
-    sem->name = strdup(name);
-    sem->S = S;
-    sem->waiters = list_init();
-    sem_init(&sem->mutex, 0, 1);
+semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name) {
+    int i;
+    for (i = 0; i < sem_table->len; i++)
+        if (strcmp(sem_table->table[i].name, name) == 0)
+            return &sem_table->table[i];
+    return NULL;
 }
 
 /**

@@ -79,18 +79,6 @@ void read_semaphores(process_t* proc, char* sem_line);
 instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
 
 /**
- * It returns a pointer to the semaphore with the
- * specified name. If does not exists any semaphore
- * with that name, then NULL is returned.
- *
- * @param name the semaphore name
- *
- * @return a pointer to the semaphore with the
- *         specified name; otherwise, NULL.
- */
-semaphore_t* get_semaphore(const char* name);
-
-/**
  * It returns the value 1 if the specified processes
  * can be matched. Otherwise, returns the value 0.
  *
@@ -364,7 +352,7 @@ void parse_instr(instr_t* instr, char* instr_line) {
         instr_line[strlen(instr_line) - 1] = '\0';
         char* instr_name = instr_line + 2;
 
-        instr->sem = get_semaphore(instr_name);
+        instr->sem = semaphore_find(&kernel->sem_table, instr_name);
         return;
     }
 
@@ -381,25 +369,6 @@ void parse_instr(instr_t* instr, char* instr_line) {
         instr->op = PRINT;
 
     instr->value = right_op;
-}
-
-/**
- * It returns a pointer to the semaphore with the
- * specified name. If does not exists any semaphore
- * with that name, then NULL is returned.
- *
- * @param name the semaphore name
- *
- * @return a pointer to the semaphore with the
- *         specified name; otherwise, NULL.
- */
-semaphore_t* get_semaphore(const char* name) {
-    int i;
-
-    for (i = 0; i < kernel->sem_table.len; i++)
-        if (strcmp(kernel->sem_table.table[i].name, name) == 0)
-            return &kernel->sem_table.table[i];
-    return NULL;
 }
 
 /**
