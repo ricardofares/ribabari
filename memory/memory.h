@@ -20,6 +20,7 @@ typedef struct memory_node_t {
     int begin;
     int size;
 
+    int page_qtd;
     page_t* page_table;
 } memory_node_t;
 
@@ -35,4 +36,14 @@ typedef struct Segment_Table {
 } segment_table_t;
 
 
+segment_table_t* init_segment_table();
+memory_node_t* init_seg_memory(int size, int used, int begin);
+segment_t* init_segment(int seg_id, int size, int used, int begin);
+void add_segment(segment_table_t* seg_table, segment_t* seg);
+segment_t* get_segment(segment_table_t* seg_table, int seg_id);
+list_node_t* get_node_from_seg_table(segment_table_t* seg_table, int seg_id);
+void delete_segment(segment_table_t* seg_table, int seg_id);
+int seg_equal(void* seg_id, void* num);
+
 #endif // OS_PROJECT_MEMORY_H
+

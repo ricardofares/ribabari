@@ -106,7 +106,7 @@ void kernel_init() {
     printf("Process table initialized.\n");
 #endif // DEBUG
 
-    kernel->seg_table = list_init();
+    kernel->seg_table = init_segment_table();
 
 #if DEBUG
     printf("Segment table initialized.\n");

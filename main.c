@@ -5,11 +5,6 @@
 
 kernel_t* kernel;
 
-void print_list(list_t* list);
-int int_matcher(void *a, void *b) {
-    return ((int) a) == ((int) b);
-}
-
 typedef long double d64;
 d64 lastTick = 0.0;
 d64 currentTick = 0.0;
@@ -73,14 +68,4 @@ int main() {
     return 0;
 }
 
-void print_list(list_t* list) {
-    list_node_t* curr;
 
-    for (curr = list->head; curr != NULL; curr = curr->next)
-        printf("%d -> ", (int) curr->content);
-    printf("\n");
-    for (curr = list->tail; curr != NULL; curr = curr->prev)
-        printf("%d -> ", (int) curr->content);
-    printf("\n");
-
-}
