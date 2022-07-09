@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.19)
 project(so_project C)
 
 set(CMAKE_C_STANDARD 11)
@@ -18,4 +18,6 @@ add_executable(so_project
         process/process.h
         sched/sched.c
         sched/sched.h
+        semaphore/semaphore.c
+        semaphore/semaphore.h
         )

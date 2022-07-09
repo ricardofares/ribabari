@@ -6,8 +6,15 @@
 
 kernel_t* kernel;
 
+void print_list(list_t* list);
+int int_matcher(void *a, void *b) {
+    return ((int) a) == ((int) b);
+}
+
 long long int ns_last_execution;
 long long int t;
+int a = 1;
+int b = 5;
 
 void cpu() {
     printf("Test123\n");
@@ -25,21 +32,24 @@ void cpu() {
             continue;
         }
 
-        if ((t % 5) == 0) {
+        if ((t % b) == 0 && a) {
             ns_last_execution = 0;
-            schedule_process(IO_REQUESTED);
-
-            if (kernel->scheduler->scheduled_proc)
-                printf("(I/O REQUEST) Process %s has been scheduled.\n",
-                       kernel->scheduler->scheduled_proc->name);
-            else printf("No process has been scheduled.\n");
+            b *= 5;
+//            schedule_process(kernel->scheduler, IO_REQUESTED);
+//
+//            if (kernel->scheduler->scheduled_proc)
+//                printf("(I/O REQUEST) Process %s has been scheduled.\n",
+//                       kernel->scheduler->scheduled_proc->name);
+//            else printf("No process has been scheduled.\n");
+            printf("Finishing the %s process...\n", kernel->scheduler->scheduled_proc->name);
+            sysCall(PROCESS_FINISH, (void *) kernel->scheduler->scheduled_proc);
             continue;
         }
 
         /* No process has taken the CPU */
         if (!kernel->scheduler->scheduled_proc) {
             printf("No process to be executed.\n");
-            schedule_process(0);
+            schedule_process(kernel->scheduler, 0);
 
             if (kernel->scheduler->scheduled_proc)
                 printf("(NONE) Process %s has been scheduled.\n",
@@ -50,12 +60,16 @@ void cpu() {
 
         if (kernel->scheduler->scheduled_proc->remaining > 0) {
             kernel->scheduler->scheduled_proc->remaining--;
-            printf("Remaining: %d\n",
-                   kernel->scheduler->scheduled_proc->remaining);
+            printf("Remaining: %d (%s)\n",
+                   kernel->scheduler->scheduled_proc->remaining,
+                   kernel->scheduler->scheduled_proc->name);
         }
         else {
-            schedule_process(QUANTUM_COMPLETED);
-            printf("Process %s has been scheduled.\n",
+            printf("Scheduling...\n");
+            schedule_process(kernel->scheduler, QUANTUM_COMPLETED);
+
+            if (kernel->scheduler->scheduled_proc)
+                printf("Process %s has been scheduled.\n",
                    kernel->scheduler->scheduled_proc->name);
         }
 
@@ -72,29 +86,27 @@ int main() {
     pthread_attr_init(&cpu_attr);
     pthread_attr_setscope(&cpu_attr, PTHREAD_SCOPE_SYSTEM);
 
-    pthread_create(&cpu_id, NULL, cpu, NULL);
+    pthread_create(&cpu_id, NULL, (void *) cpu, NULL);
 
-    process_t* p1 = (process_t *)malloc(sizeof(process_t));
-    process_t* p2 = (process_t *)malloc(sizeof(process_t));
-    process_t* p3 = (process_t *)malloc(sizeof(process_t));
-    process_t* p4 = (process_t *)malloc(sizeof(process_t));
-
-    p1->name = (char *)malloc(sizeof(char) * 8);
-    p2->name = (char *)malloc(sizeof(char) * 8);
-    p3->name = (char *)malloc(sizeof(char) * 8);
-    p4->name = (char *)malloc(sizeof(char) * 8);
-
-    strcpy(p1->name, "P1");
-    strcpy(p2->name, "P2");
-    strcpy(p3->name, "P3");
-    strcpy(p4->name, "P4");
-
-    printf("Adding processes.\n");
-    list_add(kernel->scheduler->high_queue->queue, p1);
-    list_add(kernel->scheduler->low_queue->queue, p2);
-    list_add(kernel->scheduler->high_queue->queue, p3);
-    list_add(kernel->scheduler->high_queue->queue, p4);
+    sysCall(PROCESS_CREATE, "C:\\Users\\user\\CLionProjects\\so-project\\test.txt");
+    sysCall(PROCESS_CREATE, "C:\\Users\\user\\CLionProjects\\so-project\\test2.txt");
+    sysCall(PROCESS_CREATE, "C:\\Users\\user\\CLionProjects\\so-project\\test3.txt");
+    sysCall(PROCESS_CREATE, "C:\\Users\\user\\CLionProjects\\so-project\\test4.txt");
+    sysCall(PROCESS_CREATE, "C:\\Users\\user\\CLionProjects\\so-project\\test5.txt");
 
     pthread_join(cpu_id, NULL);
+
     return 0;
+}
+
+void print_list(list_t* list) {
+    list_node_t* curr;
+
+    for (curr = list->head; curr != NULL; curr = curr->next)
+        printf("%d -> ", (int) curr->content);
+    printf("\n");
+    for (curr = list->tail; curr != NULL; curr = curr->prev)
+        printf("%d -> ", (int) curr->content);
+    printf("\n");
+
 }

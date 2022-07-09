@@ -148,7 +148,7 @@ void kernel_init() {
         exit(0);
     }
 
-    scheduler_init();
+    scheduler_init(kernel->scheduler);
 
 #if DEBUG
     printf("Scheduler initialized.\n");
@@ -172,7 +172,7 @@ void kernel_init() {
 void sysCall(kernel_function_t func, void *arg) {
     switch (func) {
         case PROCESS_INTERRUPT: {
-            schedule_process((scheduler_flag_t)arg);
+            schedule_process(kernel->scheduler, (scheduler_flag_t)arg);
             break;
         }
         case PROCESS_CREATE: {

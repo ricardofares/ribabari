@@ -30,22 +30,22 @@ typedef struct Scheduler {
 
 /**
  * It initializes the scheduler.
+ *
+ * @param scheduler a pointer to the scheduler
+ *                 that will be initialized
  */
-void scheduler_init();
+void scheduler_init(scheduler_t* scheduler);
 
 /**
  * It schedules the next process
  * to take the CPU.
  *
+ * @param scheduler a pointer to the scheduler
+ *                  that will schedule a process
  * @param flags the flags to indicate to the
  *              scheduler what caused the
  *              process scheduling.
  */
-void schedule_process(scheduler_flag_t flags);
-
-#ifndef OS_SCHED_KERNEL_LOADED
-#define OS_SCHED_KERNEL_LOADED
-    #include "../kernel/kernel.h"
-#endif // OS_SCHED_KERNEL_LOADED
+void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags);
 
 #endif // OS_PROJECT_SCHED_H

@@ -25,47 +25,51 @@ scheduler_queue_t* create_queue(int quantum);
 
 /**
  * It initializes the scheduler.
+ *
+ * @param scheduler a pointer to the scheduler
+ *                 that will be initialized
  */
-void scheduler_init() {
-    kernel->scheduler->scheduled_proc = NULL;
-    kernel->scheduler->high_queue = create_queue(SCHED_HIGH_QUEUE_QUANTUM);
-    kernel->scheduler->low_queue = create_queue(SCHED_LOW_QUEUE_QUANTUM);
-    kernel->scheduler->blocked_queue = create_queue(-1);
+void scheduler_init(scheduler_t* scheduler) {
+    scheduler->scheduled_proc = NULL;
+    scheduler->high_queue = create_queue(SCHED_HIGH_QUEUE_QUANTUM);
+    scheduler->low_queue = create_queue(SCHED_LOW_QUEUE_QUANTUM);
+    scheduler->blocked_queue = create_queue(-1);
 }
 
 /**
  * It schedules the next process
  * to take the CPU.
  *
+ * @param scheduler a pointer to the scheduler
+ *                  that will schedule a process
  * @param flags the flags to indicate to the
  *              scheduler what caused the
  *              process scheduling.
  */
-void schedule_process(scheduler_flag_t flags) {
-    scheduler_t* sched = kernel->scheduler;
-    process_t* curr_scheduled = sched->scheduled_proc;
+void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags) {
+    process_t* curr_scheduled = scheduler->scheduled_proc;
     process_t* new_scheduled = NULL;
 
-    if (!list_empty(sched->high_queue->queue)) {
-        new_scheduled = (process_t *)list_remove_head(sched->high_queue->queue)->content;
+    if (!list_empty(scheduler->high_queue->queue)) {
+        new_scheduled = (process_t *)list_remove_head(scheduler->high_queue->queue)->content;
         if (new_scheduled)
-            new_scheduled->remaining = sched->high_queue->quantum;
-    } else if (!list_empty(sched->low_queue->queue)) {
-        new_scheduled = (process_t *)list_remove_head(sched->low_queue->queue)->content;
+            new_scheduled->remaining = scheduler->high_queue->quantum;
+    } else if (!list_empty(scheduler->low_queue->queue)) {
+        new_scheduled = (process_t *)list_remove_head(scheduler->low_queue->queue)->content;
         if (new_scheduled)
-            new_scheduled->remaining = sched->low_queue->quantum;
+            new_scheduled->remaining = scheduler->low_queue->quantum;
     }
 
     /* It checks if there was a process in the CPU */
     if (curr_scheduled) {
         /* Did the process request I/O? or Has requested a resource (and blocked)? */
         if ((flags & IO_REQUESTED) || (flags & SEMAPHORE_BLOCKED)) {
-            list_add(sched->blocked_queue->queue, curr_scheduled);
+            list_add(scheduler->blocked_queue->queue, curr_scheduled);
             curr_scheduled->state = BLOCKED;
         }
         /* Did the process complete its quantum time? */
         else if ((flags & QUANTUM_COMPLETED)) {
-            list_add(sched->high_queue->queue, curr_scheduled);
+            list_add(scheduler->high_queue->queue, curr_scheduled);
             curr_scheduled->state = READY;
         }
     }
@@ -73,7 +77,7 @@ void schedule_process(scheduler_flag_t flags) {
     if (new_scheduled)
         new_scheduled->state = RUNNING;
 
-    sched->scheduled_proc = new_scheduled;
+    scheduler->scheduled_proc = new_scheduled;
 }
 
 /* Internal Function Definitions */

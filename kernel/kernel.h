@@ -1,10 +1,8 @@
 #ifndef OS_PROJECT_KERNEL_H
 #define OS_PROJECT_KERNEL_H
 
-#include "../process/process.h"
 #include "../memory/memory.h"
 #include "../sched/sched.h"
-#include "../semaphore/semaphore.h"
 
 typedef enum KernelFunction {
     /* Process Related Functions */
