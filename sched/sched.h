@@ -6,10 +6,33 @@
 
 /* Scheduler Structures Definitions */
 
+/**
+ * It is an enumeration that contains
+ * the available flags to indicate what
+ * causes the current process interruption.
+ */
 typedef enum SchedulerFlags {
     NONE = 0x0,
+
+    /**
+     * An I/O request caused the current
+     * process to be interrupted. Further,
+     * that process will be blocked for
+     * further completion.
+     */
     IO_REQUESTED = 0x1,
+
+    /**
+     * The time (quantum time) provided to
+     * the process for completing its
+     * activities has been expired.
+     */
     QUANTUM_COMPLETED = 0x2,
+
+    /**
+     * A request for a semaphore has
+     * blocked the process.
+     */
     SEMAPHORE_BLOCKED = 0x4
 } scheduler_flag_t;
 
