@@ -34,8 +34,13 @@ typedef enum KernelFunction {
 } kernel_function_t;
 
 typedef struct Kernel {
-    process_t* proc_table;
-    segment_t* segment_table;
+    /* Process Table Information (aka PCB) */
+    list_t* proc_table;
+    int next_proc_id;
+
+    /* Segment Table Information */
+    list_t* seg_table;
+
     scheduler_t* scheduler;
 
     /* Semaphore Table Information */

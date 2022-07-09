@@ -1,12 +1,41 @@
 #include <stdio.h>
 #include <string.h>
 
+#define BUF_LEN_PARSE (256)
+
 #define DEBUG 1
 #include "kernel.h"
 
 /* Internal Function Prototypes */
 
-void process_create(const char* filename);
+/**
+ * It creates the process read from the file
+ * specified in the file path, and add this
+ * file to the process control block (PCB).
+ *
+ * @param filepath the file path containing
+ *                 the process specifications
+ */
+void process_create(const char* filepath);
+
+/**
+ * It parses the synthetic program written in a file.
+ * Further, if the parser has been successful then
+ * a pointer to the created process is returned.
+ * Otherwise, NULL is returned.
+ *
+ * @param filepath the filepath
+ */
+process_t* parse_synthetic_program(const char* filepath);
+
+/**
+ * It parses the instruction specified in the
+ * instruction line.
+ *
+ * @param instr a pointer to an instruction
+ * @param instr_line the instruction line
+ */
+void parse_instr(instr_t* instr, char* instr_line);
 
 /**
  * It registers the semaphore with the specified
@@ -17,6 +46,49 @@ void process_create(const char* filename);
  *                 registered
  */
 void register_semaphore(const char* sem_name);
+
+/**
+ * It reads the semaphores specified in the
+ * synthetic program. Further, the semaphores
+ * read are registered as well.
+ *
+ * @param proc the process that requested
+ *             the semaphores
+ * @param sem_line the semaphore line specified
+ *                 in the synthetic program that
+ *                 contains the requested semaphores.
+ */
+void read_semaphores(process_t* proc, char* sem_line);
+
+/**
+ * It reads the code specified in the synthetic
+ * program and returns an array containing the code.
+ *
+ * @param proc the process containing that code
+ * @param buf the buf used to read the line
+ *            containing the code. The buffer must be
+ *            big enough to contain the instruction line.
+ * @param fp the file containing the process code
+ * @param code_len a pointer to an integer used to
+ *                 set the value for contain the code
+ *                 length.
+ *
+ * @return an array of instructions read from a file
+ *         that specifies the process.
+ */
+instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
+
+/**
+ * It returns a pointer to the semaphore with the
+ * specified name. If does not exists any semaphore
+ * with that name, then NULL is returned.
+ *
+ * @param name the semaphore name
+ *
+ * @return a pointer to the semaphore with the
+ *         specified name; otherwise, NULL.
+ */
+semaphore_t* get_semaphore(const char* name);
 
 /* Kernel Function Definitions */
 
@@ -31,6 +103,19 @@ void kernel_init() {
 
 #if DEBUG
     printf("Kernel initialized.\n");
+#endif // DEBUG
+
+    kernel->proc_table = list_init();
+    kernel->next_proc_id = 1; /* 0 is for the kernel */
+
+#if DEBUG
+    printf("Process table initialized.\n");
+#endif // DEBUG
+
+    kernel->seg_table = list_init();
+
+#if DEBUG
+    printf("Segment table initialized.\n");
 #endif // DEBUG
 
     kernel->scheduler = (scheduler_t *)malloc(sizeof(scheduler_t));
@@ -73,6 +158,17 @@ void sysCall(kernel_function_t func, void *arg) {
 
 /* Internal Function Definitions */
 
+/**
+ * It reads the semaphores specified in the
+ * synthetic program. Further, the semaphores
+ * read are registered as well.
+ *
+ * @param proc the process that requested
+ *             the semaphores
+ * @param sem_line the semaphore line specified
+ *                 in the synthetic program that
+ *                 contains the requested semaphores.
+ */
 void read_semaphores(process_t* proc, char* sem_line) {
     const size_t len = strlen(sem_line);
     int sem_count = 1;
@@ -117,8 +213,7 @@ void read_semaphores(process_t* proc, char* sem_line) {
 process_t* parse_synthetic_program(const char* filepath) {
     FILE *fp;
     process_t *proc;
-    const int buflen = 256;
-    char buf[buflen];
+    char buf[BUF_LEN_PARSE];
 
     /* It checks if the file could not be opened */
     if (!(fp = fopen(filepath, "r"))) {
@@ -126,7 +221,7 @@ process_t* parse_synthetic_program(const char* filepath) {
                " could not be parsed because the"
                " file could not be opened.\n",
                filepath);
-        return NULL;
+        exit(0);
     }
 
     proc = (process_t *)malloc(sizeof(process_t));
@@ -135,7 +230,7 @@ process_t* parse_synthetic_program(const char* filepath) {
     if (!proc) {
         printf("A memory block could not be"
                " allocated for a process.\n");
-        return NULL;
+        exit(0);
     }
 
     /* Non-dependent file information */
@@ -144,30 +239,59 @@ process_t* parse_synthetic_program(const char* filepath) {
     proc->remaining = 0;
 
     /* Dependent file information */
-    fgets(buf, buflen, fp);
+    fgets(buf, BUF_LEN_PARSE, fp);
     buf[strlen(buf) - 1] = '\0';
     proc->name = strdup(buf);
 
-    fgets(buf, buflen, fp);
+    fgets(buf, BUF_LEN_PARSE, fp);
     proc->seg_id = atoi(buf);
 
-    fgets(buf, buflen, fp);
+    fgets(buf, BUF_LEN_PARSE, fp);
     proc->priority = atoi(buf);
 
-    fgets(buf, buflen, fp);
+    fgets(buf, BUF_LEN_PARSE, fp);
     proc->seg_size = atoi(buf);
 
-    fgets(buf, buflen, fp);
+    fgets(buf, BUF_LEN_PARSE, fp);
     buf[strlen(buf) - 1] = '\0';
     /* It checks if there are semaphores to be read */
     if (strcmp(buf, "\n") != 0)
         read_semaphores(proc, buf);
 
+    /* Jump the new line */
+    fgets(buf, BUF_LEN_PARSE, fp);
+
+    int codelen = 0;
+    instr_t *code = read_code(proc, buf, fp, &codelen);
+
     return proc;
 }
 
-void process_create(const char* filename) {
-    parse_synthetic_program(filename);
+/**
+ * It creates the process read from the file
+ * specified in the file path, and add this
+ * file to the process control block (PCB).
+ *
+ * @param filepath the file path containing
+ *                 the process specifications
+ */
+void process_create(const char* filepath) {
+    process_t* proc = parse_synthetic_program(filepath);
+
+    proc->id = kernel->next_proc_id;
+    kernel->next_proc_id++;
+
+    /* Add the process into the PCB */
+    list_add(kernel->proc_table, proc);
+
+    /* Add the process into the scheduling queue */
+    proc->state = READY;
+    if (proc->priority == 1)
+        list_add(kernel->scheduler->high_queue->queue, proc);
+    else list_add(kernel->scheduler->low_queue->queue, proc);
+#if DEBUG
+    printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
+#endif // DEBUG
 }
 
 /**
@@ -195,4 +319,100 @@ void register_semaphore(const char* sem_name) {
 #if DEBUG
     printf("Semaphore %s has been registered.\n", sem_name);
 #endif // DEBUG
+}
+
+/**
+ * It reads the code specified in the synthetic
+ * program and returns an array containing the code.
+ *
+ * @param proc the process containing that code
+ * @param buf the buf used to read the line
+ *            containing the code. The buffer must be
+ *            big enough to contain the instruction line.
+ * @param fp the file containing the process code
+ *
+ * @return an array of instructions read from a file
+ *         that specifies the process.
+ */
+instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len) {
+    instr_t* code;
+    long int code_section;
+    int i;
+
+    code_section = ftell(fp);
+    (*code_len) = 0;
+
+    /* It calculates the code length */
+    while (fgets(buf, BUF_LEN_PARSE, fp))
+        (*code_len)++;
+    fseek(fp, code_section, SEEK_SET);
+
+    code = (instr_t *)malloc(sizeof(instr_t) * (*code_len));
+
+    /* It checks if the code could not be allocated */
+    if (!code) {
+        printf("Not enough memory to allocate the code.\n");
+        exit(0);
+    }
+
+    /* It parses the program code */
+    i = 0;
+    while (fgets(buf, BUF_LEN_PARSE, fp))
+        parse_instr(&code[i++], buf);
+
+    return code;
+}
+
+/**
+ * It parses the instruction specified in the
+ * instruction line.
+ *
+ * @param instr a pointer to an instruction
+ * @param instr_line the instruction line
+ */
+void parse_instr(instr_t* instr, char* instr_line) {
+    /* It checks if the instruction is unary */
+    if (instr_line[0] == 'P' || instr_line[0] == 'V') {
+        instr->op = instr_line[0] == 'P' ? SEM_P : SEM_V;
+
+        /* It get the semaphore name */
+        instr_line[strlen(instr_line) - 1] = '\0';
+        char* instr_name = instr_line + 2;
+
+        instr->sem = get_semaphore(instr_name);
+        return;
+    }
+
+    char* left_op = strtok(instr_line, " ");
+    int right_op = atoi(strtok(NULL, " "));
+
+    if (strcmp(left_op, "exec") == 0)
+        instr->op = EXEC;
+    else if (strcmp(left_op, "read") == 0)
+        instr->op = READ;
+    else if (strcmp(left_op, "write") == 0)
+        instr->op = WRITE;
+    else if (strcmp(left_op, "print") == 0)
+        instr->op = PRINT;
+
+    instr->value = right_op;
+}
+
+/**
+ * It returns a pointer to the semaphore with the
+ * specified name. If does not exists any semaphore
+ * with that name, then NULL is returned.
+ *
+ * @param name the semaphore name
+ *
+ * @return a pointer to the semaphore with the
+ *         specified name; otherwise, NULL.
+ */
+semaphore_t* get_semaphore(const char* name) {
+    int i;
+
+    for (i = 0; i < kernel->sem_table_len; i++)
+        if (strcmp(kernel->sem_table[i].name, name) == 0)
+            return &kernel->sem_table[i];
+    return NULL;
 }

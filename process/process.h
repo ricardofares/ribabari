@@ -1,6 +1,8 @@
 #ifndef OS_PROJECT_PROCESS_H
 #define OS_PROJECT_PROCESS_H
 
+#include "../semaphore/semaphore.h"
+
 typedef enum Opcode {
     EXEC,
     READ,
@@ -13,7 +15,7 @@ typedef enum Opcode {
 typedef struct Instruction {
     opcode_t op;
     int value;
-    char* sem;
+    semaphore_t* sem;
 } instr_t;
 
 typedef enum ProcessState {

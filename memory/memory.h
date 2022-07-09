@@ -1,28 +1,17 @@
 #ifndef OS_PROJECT_MEMORY_H
 #define OS_PROJECT_MEMORY_H
 
+#define INSTRUCTIONS_PER_PAGE (256)
+
 #include "../utils/list.h"
+#include "../process/process.h"
+#include "../semaphore/semaphore.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef enum OP_TYPE {
-    READ,
-    EXEC,
-    SEMAPHORE_START,
-    SEMAPHORE_END,
-} OP_TYPE;
-
-typedef struct semaphore_t {
-} semaphore_t;
-
-typedef struct instruct_t {
-    OP_TYPE op;
-    int value;
-    semaphore_t* semaphore;
-} instruct_t;
-
 typedef struct Page {
-    instruct_t instructs[256];
+    instr_t code[INSTRUCTIONS_PER_PAGE];
     int is_used;
 } page_t;
 
