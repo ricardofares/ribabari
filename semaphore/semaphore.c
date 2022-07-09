@@ -16,4 +16,5 @@ void semaphore_init(semaphore_t* sem, const char* name, const int S) {
     sem->name = strdup(name);
     sem->S = S;
     sem->waiters = list_init();
+    sem_init(&sem->mutex, 0, 1);
 }

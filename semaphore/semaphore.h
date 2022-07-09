@@ -1,6 +1,7 @@
 #ifndef OS_PROJECT_SEMAPHORE_H
 #define OS_PROJECT_SEMAPHORE_H
 
+#include <semaphore.h>
 #include "../utils/list.h"
 
 typedef struct Semaphore {
@@ -25,6 +26,14 @@ typedef struct Semaphore {
      * since this semaphore is initialized.
      */
     list_t* waiters;
+
+    /**
+     * It represents the system binary
+     * semaphore used to ensure mutual
+     * exclusion when handling the
+     * "virtual" semaphore.
+     */
+    sem_t mutex;
 } semaphore_t;
 
 /**
