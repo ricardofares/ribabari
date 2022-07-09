@@ -48,16 +48,6 @@ process_t* parse_synthetic_program(const char* filepath);
 void parse_instr(instr_t* instr, char* instr_line);
 
 /**
- * It registers the semaphore with the specified
- * semaphore name, however, if the semaphore
- * already exists, then nothing is done.
- *
- * @param sem_name the semaphore name to be
- *                 registered
- */
-void register_semaphore(const char* sem_name);
-
-/**
  * It reads the semaphores specified in the
  * synthetic program. Further, the semaphores
  * read are registered as well.
@@ -154,15 +144,7 @@ void kernel_init() {
     printf("Scheduler initialized.\n");
 #endif // DEBUG
 
-    kernel->sem_table = (semaphore_t *)malloc(0);
-
-    /* It checks if the semaphore table could not be allocated */
-    if (!kernel->sem_table) {
-        printf("Not enough memory to allocate the semaphore table.\n");
-        exit(0);
-    }
-
-    kernel->sem_table_len = 0;
+    semaphore_table_init(&kernel->sem_table);
 
 #if DEBUG
     printf("Semaphore table initialized.\n");
@@ -221,7 +203,7 @@ void read_semaphores(process_t* proc, char* sem_line) {
     i = 0;
     do {
         proc->semaphores[i] = strdup(tok);
-        register_semaphore(proc->semaphores[i]);
+        semaphore_register(&kernel->sem_table, proc->semaphores[i]);
         i++;
     } while ((tok = strtok(NULL, " ")));
 #if DEBUG
@@ -325,33 +307,6 @@ void process_create(const char* filepath) {
 }
 
 /**
- * It registers the semaphore with the specified
- * semaphore name, however, if the semaphore
- * already exists, then nothing is done.
- *
- * @param sem_name the semaphore name to be
- *                 registered
- */
-void register_semaphore(const char* sem_name) {
-    int i;
-
-    /* It checks if a semaphore with the specified */
-    /* name has been already registered. */
-    for (i = 0; i < kernel->sem_table_len; i++)
-        if (strcmp(kernel->sem_table[i].name, sem_name) == 0)
-            return;
-
-    kernel->sem_table = (semaphore_t *)realloc(
-            kernel->sem_table, sizeof(semaphore_t) * (kernel->sem_table_len + 1));
-    semaphore_init(&kernel->sem_table[kernel->sem_table_len], sem_name, 1);
-    kernel->sem_table_len++;
-
-#if DEBUG
-    printf("Semaphore %s has been registered.\n", sem_name);
-#endif // DEBUG
-}
-
-/**
  * It reads the code specified in the synthetic
  * program and returns an array containing the code.
  *
@@ -441,9 +396,9 @@ void parse_instr(instr_t* instr, char* instr_line) {
 semaphore_t* get_semaphore(const char* name) {
     int i;
 
-    for (i = 0; i < kernel->sem_table_len; i++)
-        if (strcmp(kernel->sem_table[i].name, name) == 0)
-            return &kernel->sem_table[i];
+    for (i = 0; i < kernel->sem_table.len; i++)
+        if (strcmp(kernel->sem_table.table[i].name, name) == 0)
+            return &kernel->sem_table.table[i];
     return NULL;
 }
 

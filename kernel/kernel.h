@@ -42,8 +42,7 @@ typedef struct Kernel {
     scheduler_t* scheduler;
 
     /* Semaphore Table Information */
-    semaphore_t* sem_table;
-    int sem_table_len;
+    semaphore_table_t sem_table;
 
     int pc; /* Program Counter */
 } kernel_t;
