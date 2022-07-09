@@ -1,5 +1,4 @@
 #include "memory.h"
-#include "../utils/list.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -77,7 +76,7 @@ segment_t* init_segment(int seg_id, int size, int used, int begin) {
 }
 
 void add_segment(segment_table_t* seg_table, segment_t* seg) {
-    list_add(seg_table->seg_list, seg);
+    list_add(seg_table->seg_list, seg, sizeof(segment_t *));
     seg_table->seg_qtd += 1;
 }
 

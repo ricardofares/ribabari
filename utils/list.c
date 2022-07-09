@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "list.h"
 
@@ -17,7 +18,8 @@
  * @return the created node or
  *         NULL (not enough memory)
  */
-list_node_t *list_node_create(void *content) {
+list_node_t *list_node_create(void *content, unsigned long long int content_size) {
+    register int i;
     list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
 
     /* It checks if the node has not been allocated */
@@ -26,7 +28,17 @@ list_node_t *list_node_create(void *content) {
         return NULL;
     }
 
-    node->content = content;
+    node->content = (void *)malloc(content_size);
+
+    /* It checks if the node could not be allocated */
+    if (!node->content) {
+        printf("Not enough memory to allocate the content size.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Copy the content to the allocated space */
+    memcpy(node->content, content, content_size);
+
     node->next = NULL;
     node->prev = NULL;
 
@@ -61,9 +73,11 @@ list_t* list_init() {
  * @param list the list
  * @param content the content to be
  *                added at the end
+ * @param content_size the content size, it can be
+ *                     provided by the use of sizeof
  */
-void list_add(list_t *list, void *content) {
-    list_node_t *node = list_node_create(content);
+void list_add(list_t *list, void *content, unsigned long long int content_size) {
+    list_node_t *node = list_node_create(content, content_size);
 
     /* It checks if the node has not been created */
     if (!node)

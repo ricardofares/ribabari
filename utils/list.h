@@ -50,11 +50,13 @@ typedef struct List {
  * the node.
  *
  * @param content the content
+ * @param content_size the content size, it can be
+ *                     provided by the use of sizeof
  *
  * @return the created node or
  *         NULL (not enough memory)
  */
-list_node_t *list_node_create(void *content);
+list_node_t *list_node_create(void *content, unsigned long long int content_size);
 
 /* List Prototypes */
 
@@ -70,8 +72,10 @@ list_t* list_init();
  * @param list the list
  * @param content the content to be
  *                added at the end
+ * @param content_size the content size, it can be
+ *                     provided by the use of sizeof
  */
-void list_add(list_t *list, void *content);
+void list_add(list_t *list, void *content, unsigned long long int content_size);
 
 /**
  * It returns a list node if the matcher matches

@@ -86,7 +86,7 @@ void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(process_t*)) {
     sem_wait(&sem->mutex);
     sem->S--;
     if (sem->S < 0) {
-        list_add(sem->waiters, proc);
+        list_add(sem->waiters, proc, sizeof(process_t *));
         sleep(proc);
     }
     sem_post(&sem->mutex);

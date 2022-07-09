@@ -284,13 +284,13 @@ void process_create(const char* filepath) {
     kernel->next_proc_id++;
 
     /* Add the process into the PCB */
-    list_add(kernel->proc_table, proc);
+    list_add(kernel->proc_table, proc, sizeof(process_t *));
 
     /* Add the process into the scheduling queue */
     proc->state = READY;
     if (proc->priority == 1)
-        list_add(kernel->scheduler->high_queue->queue, proc);
-    else list_add(kernel->scheduler->low_queue->queue, proc);
+        list_add(kernel->scheduler->high_queue->queue, proc, sizeof(process_t *));
+    else list_add(kernel->scheduler->low_queue->queue, proc, sizeof(process_t *));
 #if DEBUG
     printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
 #endif // DEBUG
