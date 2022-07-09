@@ -81,6 +81,9 @@ instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
  */
 static int process_comparator(void *p1, void *p2);
 
+void sleep(process_t* proc);
+void wakeup(process_t* proc);
+
 /* Kernel Function Definitions */
 
 void kernel_init() {
@@ -142,6 +145,14 @@ void sysCall(kernel_function_t func, void *arg) {
         }
         case PROCESS_FINISH: {
             process_finish((process_t *)arg);
+            break;
+        }
+        case SEMAPHORE_P: {
+            semaphore_P((semaphore_t *)arg, kernel->scheduler->scheduled_proc, sleep);
+            break;
+        }
+        case SEMAPHORE_V: {
+            semaphore_V((semaphore_t *)arg, wakeup);
             break;
         }
     }
@@ -378,4 +389,12 @@ void process_finish(process_t* proc) {
  */
 static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
+}
+
+void sleep(process_t* proc) {
+    sysCall(PROCESS_INTERRUPT, (void *) SEMAPHORE_BLOCKED);
+}
+
+void wakeup(process_t* proc) {
+    schedule_wake_process(kernel->scheduler, proc);
 }
