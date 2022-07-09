@@ -19,6 +19,16 @@
 void process_create(const char* filepath);
 
 /**
+ * It finishes the specified process removing
+ * it from the PCB and from schedulable process
+ * queue. Further, the memory allocated for the
+ * process is freed.
+ *
+ * @param proc the process to be finished
+ */
+void process_finish(process_t* proc);
+
+/**
  * It parses the synthetic program written in a file.
  * Further, if the parser has been successful then
  * a pointer to the created process is returned.
@@ -90,6 +100,18 @@ instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
  */
 semaphore_t* get_semaphore(const char* name);
 
+/**
+ * It returns the value 1 if the specified processes
+ * can be matched. Otherwise, returns the value 0.
+ *
+ * @param fid the first process
+ * @param sid the second process
+ *
+ * @return the value 1 if the processes has been
+ *         matched; otherwise, returns 0.
+ */
+static int process_comparator(void *p1, void *p2);
+
 /* Kernel Function Definitions */
 
 void kernel_init() {
@@ -149,8 +171,16 @@ void kernel_init() {
 
 void sysCall(kernel_function_t func, void *arg) {
     switch (func) {
+        case PROCESS_INTERRUPT: {
+            schedule_process((scheduler_flag_t)arg);
+            break;
+        }
         case PROCESS_CREATE: {
             process_create((char *)arg);
+            break;
+        }
+        case PROCESS_FINISH: {
+            process_finish((process_t *)arg);
             break;
         }
     }
@@ -415,4 +445,57 @@ semaphore_t* get_semaphore(const char* name) {
         if (strcmp(kernel->sem_table[i].name, name) == 0)
             return &kernel->sem_table[i];
     return NULL;
+}
+
+/**
+ * It finishes the specified process removing
+ * it from the PCB and from schedulable process
+ * queue. Further, the memory allocated for the
+ * process is freed.
+ *
+ * @param proc the process to be finished
+ */
+void process_finish(process_t* proc) {
+    if (proc) {
+        /* Remove the node from the PCB */
+        list_node_t* pcb_proc_node = list_search(kernel->proc_table, proc, process_comparator);
+        list_remove_node(kernel->proc_table, pcb_proc_node);
+
+        /* If the process is running, then interrupt it */
+        if (process_comparator(kernel->scheduler->scheduled_proc, proc))
+            sysCall(PROCESS_INTERRUPT, (void *) NONE);
+
+        /* Remove the node from the scheduler queues */
+        list_node_t* sched_proc_node;
+
+        if ((sched_proc_node = list_search(kernel->scheduler->high_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler->high_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler->low_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler->low_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler->blocked_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler->blocked_queue->queue, sched_proc_node);
+
+#if DEBUG
+        printf("Process %s has been finished.\n", proc->name);
+#endif // DEBUG
+
+        /* It frees the process allocated memory */
+        free(proc->name);
+        free(proc->semaphores);
+        free(proc);
+    }
+}
+
+/**
+ * It returns the value 1 if the specified processes
+ * can be matched. Otherwise, returns the value 0.
+ *
+ * @param fid the first process
+ * @param sid the second process
+ *
+ * @return the value 1 if the processes has been
+ *         matched; otherwise, returns 0.
+ */
+static int process_comparator(void *p1, void *p2) {
+    return ((process_t *)p1)->id == ((process_t *) p2)->id;
 }

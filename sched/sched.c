@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define SCHED_HIGH_QUEUE_QUANTUM (10)
-#define SCHED_LOW_QUEUE_QUANTUM (2000)
+#define SCHED_LOW_QUEUE_QUANTUM (20)
 
 #include "sched.h"
 
