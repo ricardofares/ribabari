@@ -39,15 +39,6 @@ void process_finish(process_t* proc);
 process_t* parse_synthetic_program(const char* filepath);
 
 /**
- * It parses the instruction specified in the
- * instruction line.
- *
- * @param instr a pointer to an instruction
- * @param instr_line the instruction line
- */
-void parse_instr(instr_t* instr, char* instr_line);
-
-/**
  * It reads the semaphores specified in the
  * synthetic program. Further, the semaphores
  * read are registered as well.
@@ -331,44 +322,9 @@ instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len) {
     /* It parses the program code */
     i = 0;
     while (fgets(buf, BUF_LEN_PARSE, fp))
-        parse_instr(&code[i++], buf);
+        instr_parse(&code[i++], buf, &kernel->sem_table);
 
     return code;
-}
-
-/**
- * It parses the instruction specified in the
- * instruction line.
- *
- * @param instr a pointer to an instruction
- * @param instr_line the instruction line
- */
-void parse_instr(instr_t* instr, char* instr_line) {
-    /* It checks if the instruction is unary */
-    if (instr_line[0] == 'P' || instr_line[0] == 'V') {
-        instr->op = instr_line[0] == 'P' ? SEM_P : SEM_V;
-
-        /* It get the semaphore name */
-        instr_line[strlen(instr_line) - 1] = '\0';
-        char* instr_name = instr_line + 2;
-
-        instr->sem = semaphore_find(&kernel->sem_table, instr_name);
-        return;
-    }
-
-    char* left_op = strtok(instr_line, " ");
-    int right_op = atoi(strtok(NULL, " "));
-
-    if (strcmp(left_op, "exec") == 0)
-        instr->op = EXEC;
-    else if (strcmp(left_op, "read") == 0)
-        instr->op = READ;
-    else if (strcmp(left_op, "write") == 0)
-        instr->op = WRITE;
-    else if (strcmp(left_op, "print") == 0)
-        instr->op = PRINT;
-
-    instr->value = right_op;
 }
 
 /**

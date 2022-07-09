@@ -1,23 +1,6 @@
 #ifndef OS_PROJECT_PROCESS_H
 #define OS_PROJECT_PROCESS_H
 
-#include "../semaphore/semaphore.h"
-
-typedef enum Opcode {
-    EXEC,
-    READ,
-    WRITE,
-    PRINT,
-    SEM_P,
-    SEM_V
-} opcode_t;
-
-typedef struct Instruction {
-    opcode_t op;
-    int value;
-    semaphore_t* sem;
-} instr_t;
-
 typedef enum ProcessState {
     NEW,
     BLOCKED,

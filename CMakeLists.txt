@@ -16,6 +16,8 @@ add_executable(so_project
         memory/memory.h
         process/process.c
         process/process.h
+        process/instruction.c
+        process/instruction.h
         sched/sched.c
         sched/sched.h
         semaphore/semaphore.c

@@ -4,7 +4,7 @@
 #define INSTRUCTIONS_PER_PAGE (256)
 
 #include "../utils/list.h"
-#include "../process/process.h"
+#include "../process/instruction.h"
 #include "../semaphore/semaphore.h"
 
 #include <stdio.h>

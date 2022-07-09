@@ -3,6 +3,7 @@
 
 #include "../memory/memory.h"
 #include "../sched/sched.h"
+#include "../process/instruction.h"
 
 typedef enum KernelFunction {
     /* Process Related Functions */
