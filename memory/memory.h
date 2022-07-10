@@ -15,19 +15,16 @@ typedef struct Page {
     int is_used;
 } page_t;
 
-typedef struct memory_node_t {
+typedef struct Segment {
+    int id;
+
     int is_used;
     int begin;
     int size;
 
     int page_qtd;
     page_t* page_table;
-} memory_node_t;
 
-typedef struct Segment {
-    int id;
-
-    memory_node_t* memory;
 } segment_t;
 
 typedef struct Segment_Table {
@@ -82,7 +79,6 @@ void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* co
 void mem_req_load(memory_request_t* req);
 
 segment_table_t* init_segment_table();
-memory_node_t* init_seg_memory(int size, int used, int begin);
 segment_t* init_segment(int seg_id, int size, int used, int begin);
 void add_segment(segment_table_t* seg_table, segment_t* seg);
 segment_t* get_segment(segment_table_t* seg_table, int seg_id);

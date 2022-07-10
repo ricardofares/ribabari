@@ -28,11 +28,11 @@ segment_table_t* init_segment_table() {
     return new_seg_table;
 }
 
-memory_node_t* init_seg_memory(int size, int used, int begin) {
-    memory_node_t* new_memory = (memory_node_t*)malloc(sizeof(memory_node_t));
+segment_t* init_segment(int seg_id, int size, int used, int begin) {
+    segment_t* new_seg = (segment_t*)malloc(sizeof(segment_t));
 
-    if (!new_memory) {
-        printf("Couldn't allocate memory for the struct memory.\n");
+    if (!new_seg) {
+        printf("Couldn't allocate memory for segment.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -45,32 +45,15 @@ memory_node_t* init_seg_memory(int size, int used, int begin) {
     int page_qtd = (real_size % PAGE_SIZE) == 0 ? real_size / PAGE_SIZE
                                                 : real_size / PAGE_SIZE + 1;
 
-    (*new_memory) = (memory_node_t) {
+
+    (*new_seg) = (segment_t) {
+        .id = seg_id,
         .is_used = used,
         .begin = begin,
         .size = real_size,
         .page_qtd = page_qtd,
         .page_table = (page_t*)malloc(sizeof(page_t) * page_qtd),
     };
-
-    if (!new_memory->page_table) {
-        printf("Couldn't allocate memory for a page table.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    return new_memory;
-}
-
-segment_t* init_segment(int seg_id, int size, int used, int begin) {
-    segment_t* new_seg = (segment_t*)malloc(sizeof(segment_t));
-
-    if (!new_seg) {
-        printf("Couldn't allocate memory for segment.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    new_seg->id = seg_id;
-    new_seg->memory = init_seg_memory(size, used, begin);
 
     return new_seg;
 }
@@ -111,8 +94,7 @@ void delete_segment(segment_table_t* seg_table, int seg_id) {
         return;
     }
 
-    free(((segment_t*) node_to_delete->content)->memory->page_table);
-    free(((segment_t*) node_to_delete->content)->memory);
+    free(((segment_t*) node_to_delete->content)->page_table);
     free(node_to_delete->content);
 
     list_remove_node(seg_table->seg_list, node_to_delete);
