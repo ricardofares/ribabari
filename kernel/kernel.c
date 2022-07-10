@@ -2,6 +2,7 @@
 #include <string.h>
 
 #define BUF_LEN_PARSE (256)
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define DEBUG 1
 #include "kernel.h"
@@ -106,21 +107,13 @@ void kernel_init() {
     printf("Process table initialized.\n");
 #endif // DEBUG
 
-    kernel->seg_table = init_segment_table();
+    segment_table_init(&kernel->seg_table);
 
 #if DEBUG
     printf("Segment table initialized.\n");
 #endif // DEBUG
 
-    kernel->scheduler = (scheduler_t *)malloc(sizeof(scheduler_t));
-
-    /* It checks if the scheduler could not be allocated */
-    if (!kernel->scheduler) {
-        printf("Not enough memory to allocate the scheduler.\n");
-        exit(0);
-    }
-
-    scheduler_init(kernel->scheduler);
+    scheduler_init(&kernel->scheduler);
 
 #if DEBUG
     printf("Scheduler initialized.\n");
@@ -136,7 +129,7 @@ void kernel_init() {
 void sysCall(kernel_function_t func, void *arg) {
     switch (func) {
         case PROCESS_INTERRUPT: {
-            schedule_process(kernel->scheduler, (scheduler_flag_t)arg);
+            schedule_process(&kernel->scheduler, (scheduler_flag_t)arg);
             break;
         }
         case PROCESS_CREATE: {
@@ -148,10 +141,14 @@ void sysCall(kernel_function_t func, void *arg) {
             break;
         }
         case MEM_LOAD_REQ: {
+            mem_req_load((memory_request_t *)arg, &kernel->seg_table);
+            break;
+        }
+        case MEM_LOAD_FINISH: {
             break;
         }
         case SEMAPHORE_P: {
-            semaphore_P((semaphore_t *)arg, kernel->scheduler->scheduled_proc, sleep);
+            semaphore_P((semaphore_t *)arg, kernel->scheduler.scheduled_proc, sleep);
             break;
         }
         case SEMAPHORE_V: {
@@ -267,11 +264,12 @@ process_t* parse_synthetic_program(const char* filepath) {
     /* Jump the new line */
     fgets(buf, BUF_LEN_PARSE, fp);
 
-    int codelen = 0;
-    instr_t *code = read_code(proc, buf, fp, &codelen);
+    int code_len = 0;
+    instr_t *code = read_code(proc, buf, fp, &code_len);
+    proc->code_len = code_len;
 
     memory_request_t memory_request;
-    mem_req_init(&memory_request, proc->id, proc->seg_id, proc->seg_size, code);
+    mem_req_init(&memory_request, proc->id, proc->seg_id, proc->seg_size, code, code_len);
 
     sysCall(MEM_LOAD_REQ, (void *) &memory_request);
     return proc;
@@ -289,13 +287,13 @@ void process_create(const char* filepath) {
     process_t* proc = parse_synthetic_program(filepath);
 
     /* Add the process into the PCB */
-    list_add(kernel->proc_table, proc, sizeof(process_t *));
+    list_add(kernel->proc_table, proc);
 
     /* Add the process into the scheduling queue */
     proc->state = READY;
     if (proc->priority == 1)
-        list_add(kernel->scheduler->high_queue->queue, proc, sizeof(process_t *));
-    else list_add(kernel->scheduler->low_queue->queue, proc, sizeof(process_t *));
+        list_add(kernel->scheduler.high_queue->queue, proc);
+    else list_add(kernel->scheduler.low_queue->queue, proc);
 #if DEBUG
     printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
 #endif // DEBUG
@@ -358,18 +356,18 @@ void process_finish(process_t* proc) {
         list_remove_node(kernel->proc_table, pcb_proc_node);
 
         /* If the process is running, then interrupt it */
-        if (process_comparator(kernel->scheduler->scheduled_proc, proc))
+        if (process_comparator(kernel->scheduler.scheduled_proc, proc))
             sysCall(PROCESS_INTERRUPT, (void *) NONE);
 
         /* Remove the node from the scheduler queues */
         list_node_t* sched_proc_node;
 
-        if ((sched_proc_node = list_search(kernel->scheduler->high_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler->high_queue->queue, sched_proc_node);
-        else if ((sched_proc_node = list_search(kernel->scheduler->low_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler->low_queue->queue, sched_proc_node);
-        else if ((sched_proc_node = list_search(kernel->scheduler->blocked_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler->blocked_queue->queue, sched_proc_node);
+        if ((sched_proc_node = list_search(kernel->scheduler.high_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.high_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler.low_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.low_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler.blocked_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.blocked_queue->queue, sched_proc_node);
 
 #if DEBUG
         printf("Process %s has been finished.\n", proc->name);
@@ -401,5 +399,22 @@ void sleep(process_t* proc) {
 }
 
 void wakeup(process_t* proc) {
-    schedule_wake_process(kernel->scheduler, proc);
+    schedule_wake_process(&kernel->scheduler, proc);
+}
+
+void eval(process_t* proc, instr_t* instr) {
+    switch (instr->op) {
+        case EXEC: {
+            proc->remaining = MAX(0, proc->remaining - instr->value);
+            break;
+        }
+        case SEM_P: {
+            sysCall(SEMAPHORE_P, instr->sem);
+            break;
+        }
+        case SEM_V: {
+            sysCall(SEMAPHORE_V, instr->sem);
+            break;
+        }
+    }
 }

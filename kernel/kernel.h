@@ -38,9 +38,10 @@ typedef struct Kernel {
     int next_proc_id;
 
     /* Segment Table Information */
-    segment_table_t* seg_table;
+    segment_table_t seg_table;
 
-    scheduler_t* scheduler;
+    /* Scheduler Information */
+    scheduler_t scheduler;
 
     /* Semaphore Table Information */
     semaphore_table_t sem_table;
@@ -55,6 +56,8 @@ void kernel_init();
 void interruptControl(kernel_function_t func, void *arg);
 
 void sysCall(kernel_function_t func, void *arg);
+
+void eval(process_t* proc, instr_t* instr);
 
 #endif // OS_PROJECT_KERNEL_H
 

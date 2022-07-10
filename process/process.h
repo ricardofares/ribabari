@@ -1,6 +1,8 @@
 #ifndef OS_PROJECT_PROCESS_H
 #define OS_PROJECT_PROCESS_H
 
+#define FETCH_INSTR_ADDR(x) ((x)->pc++)
+
 typedef enum ProcessState {
     NEW,
     BLOCKED,
@@ -14,6 +16,7 @@ typedef struct Process {
     char *name;
     int id;
     int pc; /* Program Counter */
+    int code_len;
 
     /* Memory Information */
     int seg_id;

@@ -2,6 +2,8 @@
 #define OS_PROJECT_MEMORY_H
 
 #define INSTRUCTIONS_PER_PAGE (256)
+#define PAGE_NUMBER(x) ((x) / INSTRUCTIONS_PER_PAGE)
+#define PAGE_OFFSET(x) ((x) % INSTRUCTIONS_PER_PAGE)
 
 #include "../utils/list.h"
 #include "../process/instruction.h"
@@ -12,24 +14,32 @@
 
 typedef struct Page {
     instr_t code[INSTRUCTIONS_PER_PAGE];
-    int is_used;
+    int used;
 } page_t;
 
 typedef struct Segment {
+    /* General Segment Information */
     int id;
-
-    int is_used;
-    int begin;
     int size;
 
-    int page_qtd;
+    /* Page Table Information */
     page_t* page_table;
-
+    int page_count;
 } segment_t;
 
 typedef struct Segment_Table {
+    /**
+     * The list containing the
+     * registered segments requested
+     * by the processes.
+     */
     list_t* seg_list;
-    int seg_qtd;
+
+    /**
+     * It holds the segment
+     * list size.
+     */
+    int seg_list_size;
 } segment_table_t;
 
 /**
@@ -61,9 +71,40 @@ typedef struct {
      * by this process.
      */
     instr_t* code;
+
+    /**
+     * It contains the length of
+     * the program code.
+     */
+    int code_len;
 } memory_request_t;
 
-/* Memory Function Prototypes */
+/* Segment Table Function Prototypes */
+
+/**
+ * It initializes the segment table.
+ *
+ * @param seg_table the segment table to be initialized.
+ */
+void segment_table_init(segment_table_t* seg_table);
+
+/* Segment Function Prototypes */
+
+/**
+ * It returns a pointer to a segment with the specified id.
+ * Further, if the segment table does not have any segment
+ * with that id, then NULL is returned.
+ *
+ * @param seg_table the segment table in which the segment
+ *                  will be searched
+ * @param sid the segment id
+ *
+ * @return a pointer to a segment or NULL if the segment
+ *         could not be found
+ */
+segment_t* segment_find(segment_table_t* seg_table, int sid);
+
+/* Memory Request Function Prototypes */
 
 /**
  * It initializes the memory request.
@@ -73,18 +114,19 @@ typedef struct {
  * @param sid the segment id
  * @param size the segment size
  * @param code the program code
+ * @param code_len the program code length
  */
-void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code);
+void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code, int code_len);
 
-void mem_req_load(memory_request_t* req);
-
-segment_table_t* init_segment_table();
-segment_t* init_segment(int seg_id, int size, int used, int begin);
-void add_segment(segment_table_t* seg_table, segment_t* seg);
-segment_t* get_segment(segment_table_t* seg_table, int seg_id);
-list_node_t* get_node_from_seg_table(segment_table_t* seg_table, int seg_id);
-void delete_segment(segment_table_t* seg_table, int seg_id);
-int seg_equal(void* seg_id, void* num);
+/**
+ * It loads the requested memory into the specified
+ * segment table.
+ *
+ * @param req the memory request
+ * @param seg_table the segment table in which the
+ *                  memory will be allocated
+ */
+void mem_req_load(memory_request_t* req, segment_table_t* seg_table);
 
 #endif // OS_PROJECT_MEMORY_H
 

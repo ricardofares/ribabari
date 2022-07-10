@@ -68,12 +68,12 @@ void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags) {
     if (curr_scheduled) {
         /* Did the process request I/O? or Has requested a resource (and blocked)? */
         if ((flags & IO_REQUESTED) || (flags & SEMAPHORE_BLOCKED)) {
-            list_add(scheduler->blocked_queue->queue, curr_scheduled, sizeof(process_t *));
+            list_add(scheduler->blocked_queue->queue, curr_scheduled);
             curr_scheduled->state = BLOCKED;
         }
         /* Did the process complete its quantum time? */
         else if ((flags & QUANTUM_COMPLETED)) {
-            list_add(scheduler->high_queue->queue, curr_scheduled, sizeof(process_t *));
+            list_add(scheduler->high_queue->queue, curr_scheduled);
             curr_scheduled->state = READY;
         }
     }
@@ -97,7 +97,7 @@ void schedule_wake_process(scheduler_t* scheduler, process_t* proc) {
         return;
 
     list_remove_node(scheduler->blocked_queue->queue, proc_node);
-    list_add(scheduler->high_queue->queue, proc, sizeof(process_t *));
+    list_add(scheduler->high_queue->queue, proc);
 }
 
 /* Scheduler Internal Function Definitions */
