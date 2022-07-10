@@ -147,6 +147,9 @@ void sysCall(kernel_function_t func, void *arg) {
             process_finish((process_t *)arg);
             break;
         }
+        case MEM_LOAD_REQ: {
+            break;
+        }
         case SEMAPHORE_P: {
             semaphore_P((semaphore_t *)arg, kernel->scheduler->scheduled_proc, sleep);
             break;
@@ -236,6 +239,7 @@ process_t* parse_synthetic_program(const char* filepath) {
     }
 
     /* Non-dependent file information */
+    proc->id = kernel->next_proc_id++;
     proc->pc = 0;
     proc->state = NEW;
     proc->remaining = 0;
@@ -266,6 +270,10 @@ process_t* parse_synthetic_program(const char* filepath) {
     int codelen = 0;
     instr_t *code = read_code(proc, buf, fp, &codelen);
 
+    memory_request_t memory_request;
+    mem_req_init(&memory_request, proc->id, proc->seg_id, proc->seg_size, code);
+
+    sysCall(MEM_LOAD_REQ, (void *) &memory_request);
     return proc;
 }
 
@@ -279,9 +287,6 @@ process_t* parse_synthetic_program(const char* filepath) {
  */
 void process_create(const char* filepath) {
     process_t* proc = parse_synthetic_program(filepath);
-
-    proc->id = kernel->next_proc_id;
-    kernel->next_proc_id++;
 
     /* Add the process into the PCB */
     list_add(kernel->proc_table, proc, sizeof(process_t *));

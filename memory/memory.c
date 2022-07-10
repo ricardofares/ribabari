@@ -127,3 +127,20 @@ int seg_equal(void* seg_id, void* num) {
     return FALSE;
 }
 
+/**
+ * It initializes the memory request. Further,
+ * if pid, sid or size is negative then the
+ * program is automatically terminated.
+ *
+ * @param req a pointer to a memory request
+ * @param pid the process id
+ * @param sid the segment id
+ * @param size the segment size
+ * @param code the program code
+ */
+void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code) {
+    req->pid = pid;
+    req->sid = sid;
+    req->size = size;
+    req->code = code;
+}

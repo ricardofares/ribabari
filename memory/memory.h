@@ -35,6 +35,51 @@ typedef struct Segment_Table {
     int seg_qtd;
 } segment_table_t;
 
+/**
+ * It represents a structure used
+ * to indicate the process' memory
+ * needs for the operating system
+ * allocate to it.
+ */
+typedef struct {
+    /**
+     * The process id. It is guaranteed
+     * unique for each process.
+     */
+    int pid;
+
+    /**
+     * The segment id.
+     */
+    int sid;
+
+    /**
+     * The segment size.
+     */
+    int size;
+
+    /**
+     * The program code that will be
+     * allocated in the segment requested
+     * by this process.
+     */
+    instr_t* code;
+} memory_request_t;
+
+/* Memory Function Prototypes */
+
+/**
+ * It initializes the memory request.
+ *
+ * @param req a pointer to a memory request
+ * @param pid the process id
+ * @param sid the segment id
+ * @param size the segment size
+ * @param code the program code
+ */
+void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code);
+
+void mem_req_load(memory_request_t* req);
 
 segment_table_t* init_segment_table();
 memory_node_t* init_seg_memory(int size, int used, int begin);
