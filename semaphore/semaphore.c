@@ -122,11 +122,12 @@ void semaphore_V(semaphore_t* sem, void (*wakeup)(process_t*)) {
  */
 void semaphore_table_init(semaphore_table_t* sem_table) {
     sem_table->table = (semaphore_t *)malloc(0);
-    sem_table->len = 0;
 
     /* It checks if the semaphore table could not be allocated */
     if (!sem_table->table) {
         printf("Not enough memory to allocate the semaphore table.\n");
         exit(0);
     }
+
+    sem_table->len = 0;
 }

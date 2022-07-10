@@ -5,6 +5,8 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define DEBUG 1
+#define OS_EVAL_DEBUG 0
+
 #include "kernel.h"
 
 /* Internal Function Prototypes */
@@ -142,9 +144,6 @@ void sysCall(kernel_function_t func, void *arg) {
         }
         case MEM_LOAD_REQ: {
             mem_req_load((memory_request_t *)arg, &kernel->seg_table);
-            break;
-        }
-        case MEM_LOAD_FINISH: {
             break;
         }
         case SEMAPHORE_P: {
@@ -359,6 +358,8 @@ void process_finish(process_t* proc) {
         if (process_comparator(kernel->scheduler.scheduled_proc, proc))
             sysCall(PROCESS_INTERRUPT, (void *) NONE);
 
+        segment_free(&kernel->seg_table, proc->seg_id);
+
         /* Remove the node from the scheduler queues */
         list_node_t* sched_proc_node;
 
@@ -405,15 +406,32 @@ void wakeup(process_t* proc) {
 void eval(process_t* proc, instr_t* instr) {
     switch (instr->op) {
         case EXEC: {
-            proc->remaining = MAX(0, proc->remaining - instr->value);
+#if OS_EVAL_DEBUG
+    printf("Process %s will execute for %d u.t.\n", proc->name, instr->value);
+#endif // OS_EVAL_DEBUG
+            proc->remaining = proc->remaining - instr->value;
+#if OS_EVAL_DEBUG
+    printf("Process %s has finished its executing.\n", proc->name);
+#endif
             break;
         }
         case SEM_P: {
-            sysCall(SEMAPHORE_P, instr->sem);
+#if OS_EVAL_DEBUG
+    printf("Process %s has requested for semaphore %s.\n", proc->name, instr->sem);
+#endif // OS_EVAL_DEBUG
+            sysCall(SEMAPHORE_P, semaphore_find(&kernel->sem_table, instr->sem));
+            /* It checks if the process has not been blocked */
+            /* after a semaphore request */
+            if (proc->state != BLOCKED)
+                proc->remaining = MAX(0, proc->remaining - 200);
             break;
         }
         case SEM_V: {
-            sysCall(SEMAPHORE_V, instr->sem);
+#if OS_EVAL_DEBUG
+    printf("Process %s has released semaphore %s.\n", proc->name, instr->sem);
+#endif // OS_EVAL_DEBUG
+            sysCall(SEMAPHORE_V, semaphore_find(&kernel->sem_table, instr->sem));
+            proc->remaining = MAX(0, proc->remaining - 200);
             break;
         }
     }

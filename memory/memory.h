@@ -104,6 +104,17 @@ void segment_table_init(segment_table_t* seg_table);
  */
 segment_t* segment_find(segment_table_t* seg_table, int sid);
 
+/**
+ * It frees a memory segment allocated in the specified
+ * segment table. Further, if there is no segment in
+ * the table with that id, the application is automatically
+ * terminated.
+ *
+ * @param seg_table the segment table
+ * @param sid the segment id
+ */
+void segment_free(segment_table_t* seg_table, int sid);
+
 /* Memory Request Function Prototypes */
 
 /**

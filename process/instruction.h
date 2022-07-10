@@ -30,7 +30,7 @@ typedef enum Opcode {
 typedef struct Instruction {
     opcode_t op;
     int value;
-    semaphore_t* sem;
+    char* sem;
 } instr_t;
 
 /* Instruction Function Prototypes */

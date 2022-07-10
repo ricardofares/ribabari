@@ -108,6 +108,38 @@ segment_t* segment_find(segment_table_t* seg_table, int sid) {
     return NULL;
 }
 
+/**
+ * It frees a memory segment allocated in the specified
+ * segment table. Further, if there is no segment in
+ * the table with that id, the application is automatically
+ * terminated.
+ *
+ * @param seg_table the segment table
+ * @param sid the segment id
+ */
+void segment_free(segment_table_t* seg_table, int sid) {
+    list_node_t* seg_node;
+    for (seg_node = seg_table->seg_list->head; seg_node != NULL;
+         seg_node = seg_node->next)
+        if (((segment_t *)seg_node->content)->id == sid)
+            break;
+
+    /* It checks if the segment could not be found */
+    if (!seg_node) {
+        printf("A segment release operation has been invoked"
+               " for an unregistered segment id.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Remove the segment node from the segment table list */
+    list_remove_node(seg_table->seg_list, seg_node);
+
+    segment_t* seg = (segment_t *)seg_node->content;
+    free(seg->page_table);
+    free(seg);
+    free(seg_node);
+}
+
 /* Memory Request Function Definitions */
 
 /**

@@ -33,9 +33,7 @@ void instr_semaphore_parse(instr_t* instr, const char* line, semaphore_table_t* 
     }
 
     instr->op = line[0] == 'P' ? SEM_P : SEM_V;
-    instr->sem = sem;
-
-    free(sem_name);
+    instr->sem = sem_name;
 }
 
 /* Instruction Function Definitions  */
@@ -71,5 +69,6 @@ void instr_parse(instr_t* instr, const char* line, semaphore_table_t* sem_table)
             instr->op = PRINT;
 
         instr->value = right_op;
+        instr->sem = NULL;
     }
 }
