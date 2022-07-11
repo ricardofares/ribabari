@@ -49,14 +49,50 @@ typedef struct Kernel {
     int pc; /* Program Counter */
 } kernel_t;
 
+/* Kernel Variables */
+
+/**
+ * A pointer to the kernel structure. This
+ * variable must be initialized and will be
+ * when the kernel_init function is called.
+ */
 extern kernel_t* kernel;
 
+/* Kernel Function Prototypes */
+
+/**
+ * It initializes the kernel and its
+ * underlying structures.
+ */
 void kernel_init();
 
+/**
+ * It makes a interrupt control specifying what must
+ * be signalized to the operating system.
+ *
+ * @param func the signalization flag
+ * @param arg a generic argument
+ */
 void interruptControl(kernel_function_t func, void *arg);
 
+/**
+ * It makes a system call specifying by a kernel
+ * function flag what the operating system must
+ * to do.
+ *
+ * @param func the kernel function
+ * @param arg a generic argument
+ */
 void sysCall(kernel_function_t func, void *arg);
 
+/**
+ * It evaluates the instruction that has been
+ * provided by the specified process' code
+ * segment.
+ *
+ * @param proc the process executing the instruction
+ * @param instr the instruction to be evaluated
+ */
 void eval(process_t* proc, instr_t* instr);
 
 #endif // OS_PROJECT_KERNEL_H

@@ -84,11 +84,26 @@ instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
  */
 static int process_comparator(void *p1, void *p2);
 
-void sleep(process_t* proc);
+/**
+ * It causes the process who invoked this
+ * function to sleep, that is, to be blocked.
+ */
+void sleep();
+
+/**
+ * It causes the specified process to be
+ * wake up, that is, to be unblocked.
+ *
+ * @param proc the process to be unblocked.
+ */
 void wakeup(process_t* proc);
 
 /* Kernel Function Definitions */
 
+/**
+ * It initializes the kernel and its
+ * underlying structures.
+ */
 void kernel_init() {
     kernel = (kernel_t *)malloc(sizeof(kernel_t));
 
@@ -128,6 +143,14 @@ void kernel_init() {
 #endif // DEBUG
 }
 
+/**
+ * It makes a system call specifying by a kernel
+ * function flag what the operating system must
+ * to do.
+ *
+ * @param func the kernel function
+ * @param arg a generic argument
+ */
 void sysCall(kernel_function_t func, void *arg) {
     switch (func) {
         case PROCESS_INTERRUPT: {
@@ -157,50 +180,133 @@ void sysCall(kernel_function_t func, void *arg) {
     }
 }
 
+/**
+ * It evaluates the instruction that has been
+ * provided by the specified process' code
+ * segment.
+ *
+ * @param proc the process executing the instruction
+ * @param instr the instruction to be evaluated
+ */
+void eval(process_t* proc, instr_t* instr) {
+    switch (instr->op) {
+    case EXEC: {
+#if OS_EVAL_DEBUG
+        printf("Process %s will execute for %d u.t.\n", proc->name, instr->value);
+#endif // OS_EVAL_DEBUG
+        proc->remaining = proc->remaining - instr->value;
+#if OS_EVAL_DEBUG
+        printf("Process %s has finished its executing.\n", proc->name);
+#endif
+        break;
+    }
+    case SEM_P: {
+#if OS_EVAL_DEBUG
+        printf("Process %s has requested for semaphore %s.\n", proc->name, instr->sem);
+#endif // OS_EVAL_DEBUG
+        sysCall(SEMAPHORE_P, semaphore_find(&kernel->sem_table, instr->sem));
+        /* It checks if the process has not been blocked */
+        /* after a semaphore request */
+        if (proc->state != BLOCKED)
+            proc->remaining = MAX(0, proc->remaining - 200);
+        break;
+    }
+    case SEM_V: {
+#if OS_EVAL_DEBUG
+        printf("Process %s has released semaphore %s.\n", proc->name, instr->sem);
+#endif // OS_EVAL_DEBUG
+        sysCall(SEMAPHORE_V, semaphore_find(&kernel->sem_table, instr->sem));
+        proc->remaining = MAX(0, proc->remaining - 200);
+        break;
+    }
+    }
+}
+
 /* Internal Function Definitions */
 
 /**
- * It reads the semaphores specified in the
- * synthetic program. Further, the semaphores
- * read are registered as well.
+ * It creates the process read from the file
+ * specified in the file path, and add this
+ * file to the process control block (PCB).
  *
- * @param proc the process that requested
- *             the semaphores
- * @param sem_line the semaphore line specified
- *                 in the synthetic program that
- *                 contains the requested semaphores.
+ * @param filepath the file path containing
+ *                 the process specifications
  */
-void read_semaphores(process_t* proc, char* sem_line) {
-    const size_t len = strlen(sem_line);
-    int sem_count = 1;
-    int i;
+void process_create(const char* filepath) {
+    process_t* proc = parse_synthetic_program(filepath);
 
-    /* Count the amount of semaphores requested */
-    for (i = 0; i < len; i++)
-        if (sem_line[i] == ' ') sem_count++;
+    /* Add the process into the PCB */
+    list_add(kernel->proc_table, proc);
 
-    proc->semaphores = (char **)malloc(sizeof(char *) * sem_count);
-
-    /* It checks if the array of semaphores could not be allocated */
-    if (!proc->semaphores) {
-        printf("Semaphores could not be allocated.\n");
-        exit(0);
-    }
-
-    char* tok = strtok(sem_line, " ");
-
-    i = 0;
-    do {
-        proc->semaphores[i] = strdup(tok);
-        semaphore_register(&kernel->sem_table, proc->semaphores[i]);
-        i++;
-    } while ((tok = strtok(NULL, " ")));
+    /* Add the process into the scheduling queue */
+    proc->state = READY;
+    if (proc->priority == 1)
+        list_add(kernel->scheduler.high_queue->queue, proc);
+    else list_add(kernel->scheduler.low_queue->queue, proc);
 #if DEBUG
-    printf("Process %s requested %d semaphores.\n", proc->name, sem_count);
-    printf("Semaphores are: \n");
-    for (i = 0; i < sem_count; i++)
-        printf(" - %s\n", proc->semaphores[i]);
-#endif
+    printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
+#endif // DEBUG
+}
+
+/**
+ * It finishes the specified process removing
+ * it from the PCB and from schedulable process
+ * queue. Further, the memory allocated for the
+ * process is freed.
+ *
+ * @param proc the process to be finished
+ */
+void process_finish(process_t* proc) {
+    if (proc) {
+        /* Remove the node from the PCB */
+        list_node_t* pcb_proc_node = list_search(kernel->proc_table, proc, process_comparator);
+        list_remove_node(kernel->proc_table, pcb_proc_node);
+
+        /* If the process is running, then interrupt it */
+        if (process_comparator(kernel->scheduler.scheduled_proc, proc))
+            sysCall(PROCESS_INTERRUPT, (void *) NONE);
+
+        segment_free(&kernel->seg_table, proc->seg_id);
+
+        /* Remove the node from the scheduler queues */
+        list_node_t* sched_proc_node;
+
+        if ((sched_proc_node = list_search(kernel->scheduler.high_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.high_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler.low_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.low_queue->queue, sched_proc_node);
+        else if ((sched_proc_node = list_search(kernel->scheduler.blocked_queue->queue, proc, process_comparator)))
+            list_remove_node(kernel->scheduler.blocked_queue->queue, sched_proc_node);
+
+#if DEBUG
+        printf("Process %s has been finished.\n", proc->name);
+#endif // DEBUG
+
+        /* It frees the process allocated memory */
+        free(proc->name);
+        free(proc->semaphores);
+        free(proc);
+    }
+}
+
+/**
+ * It causes the process who invoked this
+ * function to sleep, that is, to be blocked.
+ */
+void sleep() {
+    /* It causes the current scheduled process to be blocked */
+    /* in which that has been caused by a semaphore request */
+    sysCall(PROCESS_INTERRUPT, (void *) SEMAPHORE_BLOCKED);
+}
+
+/**
+ * It causes the specified process to be
+ * wake up, that is, to be unblocked.
+ *
+ * @param proc the process to be unblocked.
+ */
+void wakeup(process_t* proc) {
+    schedule_wake_process(&kernel->scheduler, proc);
 }
 
 /**
@@ -275,27 +381,47 @@ process_t* parse_synthetic_program(const char* filepath) {
 }
 
 /**
- * It creates the process read from the file
- * specified in the file path, and add this
- * file to the process control block (PCB).
+ * It reads the semaphores specified in the
+ * synthetic program. Further, the semaphores
+ * read are registered as well.
  *
- * @param filepath the file path containing
- *                 the process specifications
+ * @param proc the process that requested
+ *             the semaphores
+ * @param sem_line the semaphore line specified
+ *                 in the synthetic program that
+ *                 contains the requested semaphores.
  */
-void process_create(const char* filepath) {
-    process_t* proc = parse_synthetic_program(filepath);
+void read_semaphores(process_t* proc, char* sem_line) {
+    const size_t len = strlen(sem_line);
+    int sem_count = 1;
+    int i;
 
-    /* Add the process into the PCB */
-    list_add(kernel->proc_table, proc);
+    /* Count the amount of semaphores requested */
+    for (i = 0; i < len; i++)
+        if (sem_line[i] == ' ') sem_count++;
 
-    /* Add the process into the scheduling queue */
-    proc->state = READY;
-    if (proc->priority == 1)
-        list_add(kernel->scheduler.high_queue->queue, proc);
-    else list_add(kernel->scheduler.low_queue->queue, proc);
+    proc->semaphores = (char **)malloc(sizeof(char *) * sem_count);
+
+    /* It checks if the array of semaphores could not be allocated */
+    if (!proc->semaphores) {
+        printf("Semaphores could not be allocated.\n");
+        exit(0);
+    }
+
+    char* tok = strtok(sem_line, " ");
+
+    i = 0;
+    do {
+        proc->semaphores[i] = strdup(tok);
+        semaphore_register(&kernel->sem_table, proc->semaphores[i]);
+        i++;
+    } while ((tok = strtok(NULL, " ")));
 #if DEBUG
-    printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
-#endif // DEBUG
+    printf("Process %s requested %d semaphores.\n", proc->name, sem_count);
+    printf("Semaphores are: \n");
+    for (i = 0; i < sem_count; i++)
+        printf(" - %s\n", proc->semaphores[i]);
+#endif
 }
 
 /**
@@ -341,47 +467,6 @@ instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len) {
 }
 
 /**
- * It finishes the specified process removing
- * it from the PCB and from schedulable process
- * queue. Further, the memory allocated for the
- * process is freed.
- *
- * @param proc the process to be finished
- */
-void process_finish(process_t* proc) {
-    if (proc) {
-        /* Remove the node from the PCB */
-        list_node_t* pcb_proc_node = list_search(kernel->proc_table, proc, process_comparator);
-        list_remove_node(kernel->proc_table, pcb_proc_node);
-
-        /* If the process is running, then interrupt it */
-        if (process_comparator(kernel->scheduler.scheduled_proc, proc))
-            sysCall(PROCESS_INTERRUPT, (void *) NONE);
-
-        segment_free(&kernel->seg_table, proc->seg_id);
-
-        /* Remove the node from the scheduler queues */
-        list_node_t* sched_proc_node;
-
-        if ((sched_proc_node = list_search(kernel->scheduler.high_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler.high_queue->queue, sched_proc_node);
-        else if ((sched_proc_node = list_search(kernel->scheduler.low_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler.low_queue->queue, sched_proc_node);
-        else if ((sched_proc_node = list_search(kernel->scheduler.blocked_queue->queue, proc, process_comparator)))
-            list_remove_node(kernel->scheduler.blocked_queue->queue, sched_proc_node);
-
-#if DEBUG
-        printf("Process %s has been finished.\n", proc->name);
-#endif // DEBUG
-
-        /* It frees the process allocated memory */
-        free(proc->name);
-        free(proc->semaphores);
-        free(proc);
-    }
-}
-
-/**
  * It returns the value 1 if the specified processes
  * can be matched. Otherwise, returns the value 0.
  *
@@ -393,46 +478,4 @@ void process_finish(process_t* proc) {
  */
 static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
-}
-
-void sleep(process_t* proc) {
-    sysCall(PROCESS_INTERRUPT, (void *) SEMAPHORE_BLOCKED);
-}
-
-void wakeup(process_t* proc) {
-    schedule_wake_process(&kernel->scheduler, proc);
-}
-
-void eval(process_t* proc, instr_t* instr) {
-    switch (instr->op) {
-        case EXEC: {
-#if OS_EVAL_DEBUG
-    printf("Process %s will execute for %d u.t.\n", proc->name, instr->value);
-#endif // OS_EVAL_DEBUG
-            proc->remaining = proc->remaining - instr->value;
-#if OS_EVAL_DEBUG
-    printf("Process %s has finished its executing.\n", proc->name);
-#endif
-            break;
-        }
-        case SEM_P: {
-#if OS_EVAL_DEBUG
-    printf("Process %s has requested for semaphore %s.\n", proc->name, instr->sem);
-#endif // OS_EVAL_DEBUG
-            sysCall(SEMAPHORE_P, semaphore_find(&kernel->sem_table, instr->sem));
-            /* It checks if the process has not been blocked */
-            /* after a semaphore request */
-            if (proc->state != BLOCKED)
-                proc->remaining = MAX(0, proc->remaining - 200);
-            break;
-        }
-        case SEM_V: {
-#if OS_EVAL_DEBUG
-    printf("Process %s has released semaphore %s.\n", proc->name, instr->sem);
-#endif // OS_EVAL_DEBUG
-            sysCall(SEMAPHORE_V, semaphore_find(&kernel->sem_table, instr->sem));
-            proc->remaining = MAX(0, proc->remaining - 200);
-            break;
-        }
-    }
 }

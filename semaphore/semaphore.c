@@ -82,12 +82,12 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name) {
  * @param proc the process requesting access
  *             to this semaphore
  */
-void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(process_t*)) {
+void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void)) {
     sem_wait(&sem->mutex);
     sem->S--;
     if (sem->S < 0) {
         list_add(sem->waiters, proc);
-        sleep(proc);
+        sleep();
     }
     sem_post(&sem->mutex);
 }

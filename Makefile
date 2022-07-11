@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I. -lcurses -lmenu -lpthread
+CFLAGS=-I. -lcurses -lmenu -lpthread -lm
 SOURCES = $(wildcard *.c) $(wildcard */*c)
 
 all: 

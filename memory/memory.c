@@ -40,7 +40,7 @@ static segment_t* segment_create(memory_request_t* req) {
 
     seg->id = req->sid;
     seg->size = req->size * KILOBYTE; /* size measure in bytes */
-    seg->page_count = (int) ceil((double) req->code_len / INSTRUCTIONS_PER_PAGE);\
+    seg->page_count = (int) ceil((double) req->code_len / INSTRUCTIONS_PER_PAGE);
     seg->page_table = (page_t *)malloc(sizeof(page_t) * seg->page_count);
 
     return seg;

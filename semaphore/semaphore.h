@@ -91,7 +91,7 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
  * @param sleep a function whose invoke causes
  *              the specified process to sleep
  */
-void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(process_t*));
+void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void));
 
 /**
  * It releases an access to the specified semaphore.
