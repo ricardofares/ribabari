@@ -56,7 +56,8 @@ void instr_parse(instr_t* instr, const char* line, semaphore_table_t* sem_table)
         instr_semaphore_parse(instr, line, sem_table);
     /* Binary instruction */
     else {
-        char* left_op = strtok(line, " ");
+        char* dupline = strdup(line);
+        char* left_op = strtok(dupline, " ");
         int right_op = atoi(strtok(NULL, " "));
 
         if (strcmp(left_op, "exec") == 0)
