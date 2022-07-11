@@ -10,6 +10,7 @@ int main() {
     kernel_init();
 
     sysCall(PROCESS_CREATE, "/home/ricardo/CLionProjects/so-project/test.txt");
+    sysCall(PROCESS_CREATE, "/home/ricardo/CLionProjects/so-project/test2.txt");
 
     HOLD_MAIN_THREAD;
     return 0;

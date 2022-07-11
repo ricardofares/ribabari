@@ -7,6 +7,7 @@
 
 #include "../utils/list.h"
 #include "../process/instruction.h"
+#include "../process/process.h"
 #include "../semaphore/semaphore.h"
 
 #include <stdio.h>
@@ -50,20 +51,10 @@ typedef struct Segment_Table {
  */
 typedef struct {
     /**
-     * The process id. It is guaranteed
-     * unique for each process.
+     * It represents the process which
+     * requested the memory.
      */
-    int pid;
-
-    /**
-     * The segment id.
-     */
-    int sid;
-
-    /**
-     * The segment size.
-     */
-    int size;
+    process_t* proc;
 
     /**
      * The program code that will be
@@ -71,12 +62,6 @@ typedef struct {
      * by this process.
      */
     instr_t* code;
-
-    /**
-     * It contains the length of
-     * the program code.
-     */
-    int code_len;
 } memory_request_t;
 
 /* Segment Table Function Prototypes */
@@ -121,13 +106,10 @@ void segment_free(segment_table_t* seg_table, int sid);
  * It initializes the memory request.
  *
  * @param req a pointer to a memory request
- * @param pid the process id
- * @param sid the segment id
- * @param size the segment size
+ * @param the process which requested the memory
  * @param code the program code
- * @param code_len the program code length
  */
-void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code, int code_len);
+void mem_req_init(memory_request_t* req, process_t* proc, instr_t* code);
 
 /**
  * It loads the requested memory into the specified
