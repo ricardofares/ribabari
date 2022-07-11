@@ -58,7 +58,6 @@ void read_semaphores(process_t* proc, char* sem_line);
  * It reads the code specified in the synthetic
  * program and returns an array containing the code.
  *
- * @param proc the process containing that code
  * @param buf the buf used to read the line
  *            containing the code. The buffer must be
  *            big enough to contain the instruction line.
@@ -70,7 +69,7 @@ void read_semaphores(process_t* proc, char* sem_line);
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
+instr_t* read_code(char* buf, FILE *fp, int *code_len);
 
 /**
  * It returns the value 1 if the specified processes
@@ -428,7 +427,6 @@ void read_semaphores(process_t* proc, char* sem_line) {
  * It reads the code specified in the synthetic
  * program and returns an array containing the code.
  *
- * @param proc the process containing that code
  * @param buf the buf used to read the line
  *            containing the code. The buffer must be
  *            big enough to contain the instruction line.
@@ -437,7 +435,7 @@ void read_semaphores(process_t* proc, char* sem_line) {
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len) {
+instr_t* read_code(char* buf, FILE *fp, int *code_len) {
     instr_t* code;
     long int code_section;
     int i;
