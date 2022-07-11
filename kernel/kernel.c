@@ -369,7 +369,7 @@ process_t* parse_synthetic_program(const char* filepath) {
     fgets(buf, BUF_LEN_PARSE, fp);
 
     int code_len = 0;
-    instr_t *code = read_code(proc, buf, fp, &code_len);
+    instr_t *code = read_code(buf, fp, &code_len);
     proc->code_len = code_len;
 
     memory_request_t memory_request;
