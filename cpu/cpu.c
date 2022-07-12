@@ -1,7 +1,9 @@
+#include <curses.h>
 #include <pthread.h>
 #include <time.h>
 
 #include "cpu.h"
+#include "../terminal/terminal.h"
 
 /**
  * A pointer to the kernel structure.
@@ -41,19 +43,28 @@ _Noreturn void cpu() {
 
     clock_gettime(CLOCK_REALTIME, &start);
 
+    int no_process = 0;
+    /* int i = 0; */
     while (1) {
         /* It checks if there is no scheduled proc */
         if (!kernel->scheduler.scheduled_proc) {
-            printf("No process is running, then some will be scheduled.\n");
+            if (!no_process) {
+                list_add(log_list, (void*) "No process, is running, then some will be scheduled.\n");
+                /* mvprintw(i % 4, 0, "No process is running, then some will be scheduled.\n"); */
+                refresh();
+                no_process = 1;
+                /* i++; */
+            }
 
             /* Schedule the first process */
             schedule_process(&kernel->scheduler, NONE);
         }
         /* There is some process running */
         else {
+            no_process = 0;
             do {
                 clock_gettime(CLOCK_REALTIME, &end);
-                const auto elapsed = (end.tv_sec - start.tv_sec) * 1000000000L
+                const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L
                                      + (end.tv_nsec - start.tv_nsec);
 
                 if (elapsed >= 1000000000L) {
@@ -68,11 +79,20 @@ _Noreturn void cpu() {
                     segment_t* seg = segment_find(&kernel->seg_table, kernel->scheduler.scheduled_proc->seg_id);
                     instr_t instr = seg->page_table[page_number].code[page_offset];
 
-                    printf("Process %s, remaining: %d, pc: %d, sid: %d.\n",
+                    char* buffer = (char*) malloc(50);
+                    sprintf(buffer,
+                            "Process %s, remaining: %d, pc: %d, sid: %d.\n",
                            kernel->scheduler.scheduled_proc->name,
-                           kernel->scheduler.scheduled_proc->remaining,
+                           (kernel->scheduler.scheduled_proc->remaining),
                            pc,
                            seg->id);
+                    list_add(log_list, (void*) buffer);
+
+                    /* move(i % 4, 0); */
+                    /* clrtoeol(); */
+                    /* printw(buffer); */
+                    /* refresh(); */
+                    /* i++; */
 
                     /* Evaluate the current instruction to be executed by the process */
                     eval(kernel->scheduler.scheduled_proc, &instr);
@@ -95,3 +115,4 @@ _Noreturn void cpu() {
         }
     }
 }
+

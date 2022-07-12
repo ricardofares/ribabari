@@ -4,8 +4,10 @@
 #include <menu.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../utils/list.h"
 
 static const int EXIT = -1;
+extern list_t* log_list;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
@@ -88,6 +90,14 @@ menu_window_t* init_menu_window(const menu_t* menu);
 int begin_terminal();
 void delete_menu(menu_t* menu);
 void free_menu_window(menu_window_t* menu_window);
+
+char* get_input_from_window(char* title, coordinates_t coordinates,
+                            int buffer_size);
+void print_with_window(char* string, char* title);
+
+void* make_log_window(void* _);
+
+void log_list_init();
 
 #endif // OS_PROJECT_TERMINAL_H
 
