@@ -49,7 +49,9 @@ _Noreturn void cpu() {
         /* It checks if there is no scheduled proc */
         if (!kernel->scheduler.scheduled_proc) {
             if (!no_process) {
-                list_add(log_list, (void*) "No process, is running, then some will be scheduled.\n");
+                proc_log_info_t* new_proc_info = malloc(sizeof(proc_log_info_t));
+                new_proc_info->is_proc = 0;
+                list_add(log_list, (void*) new_proc_info);
                 /* mvprintw(i % 4, 0, "No process is running, then some will be scheduled.\n"); */
                 refresh();
                 no_process = 1;
@@ -81,12 +83,18 @@ _Noreturn void cpu() {
 
                     char* buffer = (char*) malloc(50);
                     sprintf(buffer,
-                            "Process %s, remaining: %d, pc: %d, sid: %d.\n",
+                            "PROCESS: %s, TIME REMAINING: %dms, PC: %d, ID: %d.\n",
                            kernel->scheduler.scheduled_proc->name,
                            (kernel->scheduler.scheduled_proc->remaining),
                            pc,
                            seg->id);
-                    list_add(log_list, (void*) buffer);
+                    proc_log_info_t* new_proc_info = malloc(sizeof(proc_log_info_t));
+                    new_proc_info->name = kernel->scheduler.scheduled_proc->name;
+                    new_proc_info->remaining = kernel->scheduler.scheduled_proc->remaining;
+                    new_proc_info->pc = pc;
+                    new_proc_info->id = seg->id;
+                    new_proc_info->is_proc = 1;
+                    list_add(log_list, (void*) new_proc_info);
 
                     /* move(i % 4, 0); */
                     /* clrtoeol(); */

@@ -4,21 +4,27 @@
 #include <menu.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../memory/memory.h"
 #include "../utils/list.h"
 
+#define BOX_SIZE 2
 static const int EXIT = -1;
 extern list_t* log_list;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
 
+typedef struct {
+    int is_proc;
+
+    char* name;
+    int remaining;
+    int id;
+    int pc;
+} proc_log_info_t;
+
 typedef enum main_menu_choices {
     CREATE,
-    TABLE,
-    DELETE,
-    RESOURCES_WATCH,
-    DISK_WATCH,
-    STATISTICS,
 } main_menu_choices;
 
 typedef struct menu_window_t {
@@ -60,11 +66,6 @@ typedef struct {
 
 #define MAIN_MENU(M)                                                           \
     M("Criar processo", CREATE)                                                \
-    M("Destruir Processo", DELETE)                                             \
-    M("Ver tabela de processos", TABLE)                                        \
-    M("Visualizacao de recursos", RESOURCES_WATCH)                             \
-    M("Visualizacao de disco", DISK_WATCH)                                     \
-    M("Estatistica de uso", STATISTICS)                                        \
     M("Sair", EXIT)
 
 #define SEC_MENU(M)                                                            \
@@ -93,11 +94,13 @@ void free_menu_window(menu_window_t* menu_window);
 
 char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
-void print_with_window(char* string, char* title);
+void print_with_window(char* string, char* title, int y, int x);
 
-void* make_log_window(void* _);
+void* make_process_log_window(void* _);
 
 void log_list_init();
+
+void *make_memory_window(void* _);
 
 #endif // OS_PROJECT_TERMINAL_H
 
