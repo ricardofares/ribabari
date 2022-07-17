@@ -2,7 +2,6 @@
 
 #include "memory.h"
 
-#define KILOBYTE (1024)
 
 /* Segment Internal Function Definitions */
 
@@ -42,6 +41,7 @@ static segment_t* segment_create(memory_request_t* req) {
     seg->size = req->proc->seg_size * KILOBYTE; /* size measure in bytes */
     seg->page_count = (int) ceil((double) req->proc->code_len / INSTRUCTIONS_PER_PAGE);
     seg->page_table = (page_t *)malloc(sizeof(page_t) * seg->page_count);
+    seg->page_qtd = seg->size / PAGE_SIZE;
 
     return seg;
 }
@@ -168,3 +168,4 @@ void mem_req_load(memory_request_t* req, segment_table_t* seg_table) {
     segment_populate(seg, req->code, req->proc->code_len);
     segment_add(seg_table, seg);
 }
+

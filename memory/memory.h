@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define KILOBYTE (1024)
+#define PAGE_SIZE (4 * KILOBYTE)
+
 typedef struct Page {
     instr_t code[INSTRUCTIONS_PER_PAGE];
     int used;
@@ -26,6 +29,7 @@ typedef struct Segment {
     /* Page Table Information */
     page_t* page_table;
     int page_count;
+    int page_qtd;
 } segment_t;
 
 typedef struct Segment_Table {

@@ -4,7 +4,7 @@
 #define BUF_LEN_PARSE (256)
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-#define DEBUG 1
+#define DEBUG 0
 #define OS_EVAL_DEBUG 0
 
 #include "kernel.h"
@@ -497,3 +497,4 @@ instr_t* read_code(char* buf, FILE *fp, int *code_len) {
 static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
 }
+
