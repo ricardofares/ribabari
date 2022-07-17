@@ -1,15 +1,16 @@
 #ifndef OS_PROJECT_TERMINAL_H
 #define OS_PROJECT_TERMINAL_H
+#include "../memory/memory.h"
+#include "../utils/list.h"
 #include <curses.h>
 #include <menu.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../memory/memory.h"
-#include "../utils/list.h"
 
 #define BOX_SIZE 2
 static const int EXIT = -1;
 extern list_t* log_list;
+extern sem_t log_mutex;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
@@ -100,7 +101,7 @@ void* make_process_log_window(void* _);
 
 void log_list_init();
 
-void *make_memory_window(void* _);
+void* make_memory_window(void* _);
 
 #endif // OS_PROJECT_TERMINAL_H
 

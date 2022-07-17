@@ -9,6 +9,7 @@
 
 int main() {
     log_list_init();
+
     cpu_init();
     kernel_init();
 

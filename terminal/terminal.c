@@ -1,16 +1,15 @@
 #include "terminal.h"
 #include "../kernel/kernel.h"
-#include <stdio.h>
 #include <curses.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <unistd.h>
 
+sem_t log_mutex;
 
 list_t* log_list;
 
-void log_list_init() {
-    log_list = list_init();
-}
+void log_list_init() { log_list = list_init(); }
 
 void main_menu_functions(int x) {
     coordinates_t whatever = {
@@ -19,16 +18,17 @@ void main_menu_functions(int x) {
     };
     char* input;
     switch (x) {
-    case CREATE:
-        input = get_input_from_window("Qual o Input", whatever, 40);
-        if (access(input, F_OK)) {
-            print_with_window("The name of the file doesn't exist.", "WARNING.", 1, 1);
-            return;
-        }
-        sysCall(PROCESS_CREATE, (void*)input);
-        break;
-    default:
-        break;
+        case CREATE:
+            input = get_input_from_window("Qual o Input", whatever, 40);
+            if (access(input, F_OK)) {
+                print_with_window("The name of the file doesn't exist.",
+                                  "WARNING.", 1, 1);
+                return;
+            }
+            sysCall(PROCESS_CREATE, (void*)input);
+            break;
+        default:
+            break;
     }
 }
 
@@ -39,33 +39,24 @@ int begin_terminal() {
 
     print_welcome();
 
-    WINDOW* log_window = newwin(LINES / 2, COLS / 2, 0, COLS / 2 );
-    box(log_window, 0, 0);
-    refresh();
-    wrefresh(log_window);
     pthread_t log_thread;
     pthread_attr_t log_thread_attr;
-
     pthread_attr_init(&log_thread_attr);
     pthread_attr_setscope(&log_thread_attr, PTHREAD_SCOPE_PROCESS);
-    pthread_create(&log_thread, &log_thread_attr, make_process_log_window,
-                   (void*)log_window);
-
-    WINDOW* memory_window = newwin(LINES / 2, COLS / 2, LINES / 2, COLS / 2);
-    box(memory_window, 0, 0);
-    refresh();
-    wrefresh(memory_window);
     pthread_t memory_thread;
     pthread_attr_t memory_thread_attr;
     pthread_attr_init(&memory_thread_attr);
     pthread_attr_setscope(&memory_thread_attr, PTHREAD_SCOPE_PROCESS);
-    pthread_create(&memory_thread, &memory_thread_attr, make_memory_window,
-                   (void*)memory_window);
-
 
     menu_choice_t choices[] = {MAIN_MENU(SI)};
     menu_t* main_menu
         = create_menu(ARRAY_SIZE(choices), choices, "Menu Principal");
+
+    pthread_create(&log_thread, &log_thread_attr, make_process_log_window,
+                   NULL);
+    pthread_create(&memory_thread, &memory_thread_attr, make_memory_window,
+                   NULL);
+    refresh();
 
     start_menu_and_loop(main_menu, (void (*)(int))NULL);
     unpost_menu(main_menu->curses_menu);
@@ -103,7 +94,6 @@ menu_t* create_menu(int choices_count,
     set_menu_fore(menu->curses_menu, COLOR_PAIR(2) | A_BOLD);
     set_menu_back(menu->curses_menu, COLOR_PAIR(2));
 
-
     set_menu_win(menu->curses_menu, menu->menu_window->main_win);
     set_menu_sub(menu->curses_menu, menu->menu_window->items_win);
 
@@ -120,8 +110,7 @@ void title_print(WINDOW* title_win, int win_width, const char* title) {
 
 menu_window_t* init_menu_window(const menu_t* menu) {
     WINDOW* mainWin
-        = newwin(menu->height, menu->width, (LINES - menu->height) / 2,
-                 10);
+        = newwin(menu->height, menu->width, (LINES - menu->height) / 2, 10);
 
     const int titleHeight = 3;
     WINDOW* title_win = derwin(mainWin, titleHeight, menu->width, 0, 0);
@@ -139,7 +128,8 @@ menu_window_t* init_menu_window(const menu_t* menu) {
     const int titleMiddleY = 1;
 
     // Print title with colors and bold
-    title_print(title_win, (menu->width - strlen(menu->title)) / 2, menu->title);
+    title_print(title_win, (menu->width - strlen(menu->title)) / 2,
+                menu->title);
 
     menu_window_t* newMenuWindow
         = (menu_window_t*)malloc(sizeof(menu_window_t));
@@ -153,7 +143,6 @@ menu_window_t* init_menu_window(const menu_t* menu) {
         .begin_x = (COLS - menu->width) / 2,
     };
 
-
     return newMenuWindow;
 }
 
@@ -166,14 +155,13 @@ void init_screen() {
     keypad(stdscr, TRUE);
 
     // TITLE COLOR PAIR
-	init_pair(1, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(1, COLOR_YELLOW, COLOR_BLACK);
 
     // LOG COLOR PAIR
-	init_pair(2, COLOR_CYAN, COLOR_BLACK);
+    init_pair(2, COLOR_CYAN, COLOR_BLACK);
 
     // BORDER COLOR PAIR
-	init_pair(3, COLOR_GREEN, COLOR_BLACK);
-
+    init_pair(3, COLOR_GREEN, COLOR_BLACK);
 }
 
 void print_item_index(menu_t* menu, const ITEM* item) {
@@ -195,31 +183,32 @@ void menu_loop(menu_t* menu, void (*func)(int)) {
 
     while ((c = wgetch(main_window))) {
         switch (c) {
-        case 'j':
-        case KEY_DOWN:
-            menu_driver(curses_menu, REQ_DOWN_ITEM);
-            break;
-        case 'k':
-        case KEY_UP:
-            menu_driver(curses_menu, REQ_UP_ITEM);
-            break;
-        case ENTER_KEY: {
-            ITEM* cur = current_item(curses_menu);
-            int type = get_type_from_string(menu, item_name(cur));
+            case 'j':
+            case KEY_DOWN:
+                menu_driver(curses_menu, REQ_DOWN_ITEM);
+                break;
+            case 'k':
+            case KEY_UP:
+                menu_driver(curses_menu, REQ_UP_ITEM);
+                break;
+            case ENTER_KEY:
+                {
+                    ITEM* cur = current_item(curses_menu);
+                    int type = get_type_from_string(menu, item_name(cur));
 
-            if (type == EXIT) {
-                return;
-            }
+                    if (type == EXIT) {
+                        return;
+                    }
 
-            if (func) {
-                wrefresh(menu->menu_window->main_win);
-                func(type);
-            }
+                    if (func) {
+                        wrefresh(menu->menu_window->main_win);
+                        func(type);
+                    }
 
-            break;
-        }
-        default:
-            break;
+                    break;
+                }
+            default:
+                break;
         }
 
         refresh();
@@ -323,13 +312,12 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
     io_win.main_window = newwin(5, buffer_size + BOX_SIZE, coordinates.begin_y,
                                 coordinates.begin_x);
 
-
     const int title_window_height = 3;
     io_win.title_window = derwin(io_win.main_window, title_window_height,
                                  buffer_size + BOX_SIZE, 0, 0);
 
-
-    title_print(io_win.title_window, (buffer_size + BOX_SIZE - strlen(title)) / 2, title);
+    title_print(io_win.title_window,
+                (buffer_size + BOX_SIZE - strlen(title)) / 2, title);
 
     wattrset(io_win.title_window, COLOR_PAIR(3));
     wattrset(io_win.main_window, COLOR_PAIR(3));
@@ -366,8 +354,7 @@ void print_with_window(char* string, char* title, int y, int x) {
     }
 
     int window_height = 5;
-    io_win.main_window
-        = newwin(window_height, window_width, y, x);
+    io_win.main_window = newwin(window_height, window_width, y, x);
 
     int title_height = 3;
     io_win.title_window = derwin(io_win.main_window, 3, window_width, 0, 0);
@@ -385,17 +372,22 @@ void print_with_window(char* string, char* title, int y, int x) {
     mvwprintw(io_win.text_window, 0, (window_width - 2 - string_len) / 2, "%s",
               string);
     input_refresh(&io_win);
-            getch();
+    getch();
 
     del_io_window(&io_win);
 }
 
 void* make_process_log_window(void* log_window) {
-    WINDOW* main_window = (WINDOW*)log_window;
-    WINDOW* text_window = derwin(main_window, LINES / 2 - 4, COLS / 2 - 3, 3, 1);
+    WINDOW* main_window = newwin(LINES / 2, COLS / 2, 0, COLS / 2);
+    WINDOW* text_window
+        = derwin(main_window, LINES / 2 - 4, COLS / 2 - 3, 3, 1);
     WINDOW* title_window = derwin(main_window, 3, COLS / 2, 0, 0);
     scrollok(text_window, 1);
     wattrset(text_window, COLOR_PAIR(2));
+
+    box(log_window, 0, 0);
+    refresh();
+    wrefresh(log_window);
 
     const char title[] = "Processos";
     title_print(title_window, ((COLS / 2) - strlen(title)) / 2, title);
@@ -407,16 +399,25 @@ void* make_process_log_window(void* log_window) {
 
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
+
+    sem_wait(&log_mutex);
+    list_node_t* i = log_list->head;
+
+    /* refresh(); */
+    box(title_window, 0, 0);
+    box(main_window, 0, 0);
+    wrefresh(main_window);
     while (1) {
         clock_gettime(CLOCK_REALTIME, &end);
         const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L
-                                + (end.tv_nsec - start.tv_nsec);
+                            + (end.tv_nsec - start.tv_nsec);
 
         if (elapsed >= 1000000000L) {
             start = end;
 
-            wmove(text_window, 0, 0);
-            for (list_node_t* i = log_list->head; i != NULL; i = i->next) {
+            sem_wait(&log_mutex);
+            i = i->next;
+            for (; i != NULL; i = i->next) {
                 proc_log_info_t* log_info = ((proc_log_info_t*)i->content);
                 if (!log_info->is_proc) {
                     wprintw(text_window, "No process running.\n");
@@ -450,25 +451,30 @@ void* make_process_log_window(void* log_window) {
 
                 wattron(text_window, COLOR_PAIR(3));
                 wprintw(text_window, "%d.\n", log_info->id);
-
-
-                refresh();
-                box(title_window, 0, 0);
-                box(main_window, 0, 0);
-                wrefresh(main_window);
             }
+
+            /* refresh(); */
+            box(title_window, 0, 0);
+            box(main_window, 0, 0);
+            wrefresh(main_window);
+            i = log_list->tail;
         }
     }
 
     return NULL;
 }
 
-#define COLOR_BOLD  "\e[1m"
-#define COLOR_OFF   "\e[m"
-void *make_memory_window(void* memory_window) {
-    WINDOW* main_window = (WINDOW*)memory_window;
+#define COLOR_BOLD "\e[1m"
+#define COLOR_OFF "\e[m"
+void* make_memory_window(void* memory_window) {
+    WINDOW* main_window = newwin(LINES / 2, COLS / 2, LINES / 2, COLS / 2);
+
+    box(memory_window, 0, 0);
+    refresh();
+    wrefresh(memory_window);
     WINDOW* title_window = derwin(main_window, 3, COLS / 2, 0, 0);
-    WINDOW* text_window = derwin(main_window, LINES / 2 - 4, COLS / 2 - 3, 3, 1);
+    WINDOW* text_window
+        = derwin(main_window, LINES / 2 - 4, COLS / 2 - 3, 3, 1);
     list_t* seg_list = kernel->seg_table.seg_list;
 
     char title[] = "Memória";
@@ -481,10 +487,13 @@ void *make_memory_window(void* memory_window) {
 
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
+
+
+    refresh();
     while (1) {
         clock_gettime(CLOCK_REALTIME, &end);
         const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L
-                                + (end.tv_nsec - start.tv_nsec);
+                            + (end.tv_nsec - start.tv_nsec);
 
         if (elapsed >= 1000000000L) {
             start = end;
@@ -494,8 +503,7 @@ void *make_memory_window(void* memory_window) {
 
             for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
                 segment_t* seg = ((segment_t*)i->content);
-                char *buffer = malloc(100);
-
+                char* buffer = malloc(100);
 
                 wattron(text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(text_window, "ID: ");
@@ -518,12 +526,12 @@ void *make_memory_window(void* memory_window) {
                 wattroff(text_window, A_BOLD);
 
                 wattron(text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%d avaiable, page %d in use -> \n", seg->page_qtd, seg->page_count);
+                snprintf(buffer, 100, "%d avaiable, page %d in use -> \n",
+                         seg->page_qtd, seg->page_count);
                 wprintw(text_window, buffer);
 
                 wattroff(text_window, COLOR_PAIR(2));
             }
-            refresh();
             box(title_window, 0, 0);
             box(main_window, 0, 0);
             wrefresh(main_window);
