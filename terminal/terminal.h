@@ -65,6 +65,12 @@ typedef struct {
     WINDOW* title_window;
 } io_window_t;
 
+typedef struct {
+    WINDOW* main_window;
+    WINDOW* text_window;
+    WINDOW* title_window;
+} log_window_t;
+
 #define MAIN_MENU(M)                                                           \
     M("Criar processo", CREATE)                                                \
     M("Sair", EXIT)
@@ -97,11 +103,13 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
 void print_with_window(char* string, char* title, int y, int x);
 
-void* make_process_log_window(void* _);
-
 void log_list_init();
 
-void* make_memory_window(void* _);
+void* refresh_process_log(void* process_log);
+void* refresh_memory_log(void* memory_log);
+
+log_window_t* init_process_log();
+log_window_t* init_memory_log();
 
 #endif // OS_PROJECT_TERMINAL_H
 
