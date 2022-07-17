@@ -37,9 +37,9 @@ static segment_t* segment_create(memory_request_t* req) {
         exit(EXIT_FAILURE);
     }
 
-    seg->id = req->sid;
-    seg->size = req->size * KILOBYTE; /* size measure in bytes */
-    seg->page_count = (int) ceil((double) req->code_len / INSTRUCTIONS_PER_PAGE);
+    seg->id = req->proc->seg_id;
+    seg->size = req->proc->seg_size * KILOBYTE; /* size measure in bytes */
+    seg->page_count = (int) ceil((double) req->proc->code_len / INSTRUCTIONS_PER_PAGE);
     seg->page_table = (page_t *)malloc(sizeof(page_t) * seg->page_count);
     seg->page_qtd = seg->size / PAGE_SIZE;
 
@@ -143,23 +143,15 @@ void segment_free(segment_table_t* seg_table, int sid) {
 /* Memory Request Function Definitions */
 
 /**
- * It initializes the memory request. Further,
- * if pid, sid or size is negative then the
- * program is automatically terminated.
+ * It initializes the memory request.
  *
  * @param req a pointer to a memory request
- * @param pid the process id
- * @param sid the segment id
- * @param size the segment size
+ * @param the process which requested the memory
  * @param code the program code
- * @param code_len the program code length
  */
-void mem_req_init(memory_request_t* req, int pid, int sid, int size, instr_t* code, int code_len) {
-    req->pid = pid;
-    req->sid = sid;
-    req->size = size;
+void mem_req_init(memory_request_t* req, process_t* proc, instr_t* code) {
+    req->proc = proc;
     req->code = code;
-    req->code_len = code_len;
 }
 
 /**
@@ -173,7 +165,7 @@ void mem_req_load(memory_request_t* req, segment_table_t* seg_table) {
     segment_t* seg = segment_create(req);
 
     /* Populate the segment's page with the program code */
-    segment_populate(seg, req->code, req->code_len);
+    segment_populate(seg, req->code, req->proc->code_len);
     segment_add(seg_table, seg);
 }
 

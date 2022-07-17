@@ -39,7 +39,7 @@ void process_finish(process_t* proc);
  *
  * @param filepath the filepath
  */
-process_t* parse_synthetic_program(const char* filepath);
+process_t* parse_synthetic_program(FILE* fp, char* buf);
 
 /**
  * It reads the semaphores specified in the
@@ -58,7 +58,6 @@ void read_semaphores(process_t* proc, char* sem_line);
  * It reads the code specified in the synthetic
  * program and returns an array containing the code.
  *
- * @param proc the process containing that code
  * @param buf the buf used to read the line
  *            containing the code. The buffer must be
  *            big enough to contain the instruction line.
@@ -70,7 +69,7 @@ void read_semaphores(process_t* proc, char* sem_line);
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len);
+instr_t* read_code(char* buf, FILE *fp, int *code_len);
 
 /**
  * It returns the value 1 if the specified processes
@@ -166,7 +165,11 @@ void sysCall(kernel_function_t func, void *arg) {
             break;
         }
         case MEM_LOAD_REQ: {
+            /* It requests the memory a portion of itself */
             mem_req_load((memory_request_t *)arg, &kernel->seg_table);
+
+            /* It signalizes the kernel that the memory requested has been allocated */
+            interruptControl(MEM_LOAD_FINISH, (memory_request_t *)arg);
             break;
         }
         case SEMAPHORE_P: {
@@ -177,6 +180,32 @@ void sysCall(kernel_function_t func, void *arg) {
             semaphore_V((semaphore_t *)arg, wakeup);
             break;
         }
+    }
+}
+
+/**
+ * It makes a interrupt control specifying what must
+ * be signalized to the operating system.
+ *
+ * @param func the signalization flag
+ * @param arg a generic argument
+ */
+void interruptControl(kernel_function_t func, void *arg) {
+    switch (func) {
+    case MEM_LOAD_FINISH: {
+        memory_request_t* req = (memory_request_t *)arg;
+        process_t* proc = req->proc;
+
+        /* Add the process into the PCB */
+        list_add(kernel->proc_table, proc);
+
+        /* Add the process into the scheduling queue */
+        proc->state = READY;
+        if (proc->priority == 1)
+            list_add(kernel->scheduler.high_queue->queue, proc);
+        else list_add(kernel->scheduler.low_queue->queue, proc);
+        break;
+    }
     }
 }
 
@@ -233,16 +262,28 @@ void eval(process_t* proc, instr_t* instr) {
  *                 the process specifications
  */
 void process_create(const char* filepath) {
-    process_t* proc = parse_synthetic_program(filepath);
+    FILE *fp;
+    process_t* proc;
+    instr_t *code;
+    char buf[BUF_LEN_PARSE];
 
-    /* Add the process into the PCB */
-    list_add(kernel->proc_table, proc);
+    /* It checks if the file could not be opened */
+    if (!(fp = fopen(filepath, "r"))) {
+        printf("A synthetic program located at %s"
+               " could not be parsed because the"
+               " file could not be opened.\n",
+               filepath);
+        exit(EXIT_FAILURE);
+    }
 
-    /* Add the process into the scheduling queue */
-    proc->state = READY;
-    if (proc->priority == 1)
-        list_add(kernel->scheduler.high_queue->queue, proc);
-    else list_add(kernel->scheduler.low_queue->queue, proc);
+    proc = parse_synthetic_program(fp, buf);
+    code = read_code(buf, fp, &proc->code_len);
+
+    memory_request_t memory_request;
+    mem_req_init(&memory_request, proc, code);
+
+    sysCall(MEM_LOAD_REQ, (void *) &memory_request);
+
 #if DEBUG
     printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
 #endif // DEBUG
@@ -317,21 +358,8 @@ void wakeup(process_t* proc) {
  *
  * @param filepath the filepath
  */
-process_t* parse_synthetic_program(const char* filepath) {
-    FILE *fp;
-    process_t *proc;
-    char buf[BUF_LEN_PARSE];
-
-    /* It checks if the file could not be opened */
-    if (!(fp = fopen(filepath, "r"))) {
-        printf("A synthetic program located at %s"
-               " could not be parsed because the"
-               " file could not be opened.\n",
-               filepath);
-        exit(0);
-    }
-
-    proc = (process_t *)malloc(sizeof(process_t));
+process_t* parse_synthetic_program(FILE* fp, char* buf) {
+    process_t *proc = (process_t *)malloc(sizeof(process_t));
 
     /* It checks if the process could not be allocated */
     if (!proc) {
@@ -368,15 +396,6 @@ process_t* parse_synthetic_program(const char* filepath) {
 
     /* Jump the new line */
     fgets(buf, BUF_LEN_PARSE, fp);
-
-    int code_len = 0;
-    instr_t *code = read_code(proc, buf, fp, &code_len);
-    proc->code_len = code_len;
-
-    memory_request_t memory_request;
-    mem_req_init(&memory_request, proc->id, proc->seg_id, proc->seg_size, code, code_len);
-
-    sysCall(MEM_LOAD_REQ, (void *) &memory_request);
     return proc;
 }
 
@@ -428,7 +447,6 @@ void read_semaphores(process_t* proc, char* sem_line) {
  * It reads the code specified in the synthetic
  * program and returns an array containing the code.
  *
- * @param proc the process containing that code
  * @param buf the buf used to read the line
  *            containing the code. The buffer must be
  *            big enough to contain the instruction line.
@@ -437,7 +455,7 @@ void read_semaphores(process_t* proc, char* sem_line) {
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(process_t* proc, char* buf, FILE *fp, int *code_len) {
+instr_t* read_code(char* buf, FILE *fp, int *code_len) {
     instr_t* code;
     long int code_section;
     int i;

@@ -15,7 +15,6 @@ int main() {
 
     begin_terminal();
 
-
     /* HOLD_MAIN_THREAD; */
     return 0;
 }
