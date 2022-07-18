@@ -19,9 +19,9 @@ void main_menu_functions(int x) {
     char* input;
     switch (x) {
         case CREATE:
-            input = get_input_from_window("Qual o Input", whatever, 40);
+            input = get_input_from_window("What the name of the file?", whatever, 40);
             if (access(input, F_OK)) {
-                print_with_window("The name of the file doesn't exist.",
+                print_with_window("The file couldn't be executed or doesn't exist.",
                                   "WARNING.", 1, 1);
                 return;
             }
@@ -44,7 +44,7 @@ int begin_terminal() {
 
     menu_choice_t choices[] = {MAIN_MENU(SI)};
     menu_t* main_menu
-        = create_menu(ARRAY_SIZE(choices), choices, "Menu Principal");
+        = create_menu(ARRAY_SIZE(choices), choices, "Main Menu");
 
     log_window_t* process_log = init_process_log();
     pthread_create(&log_thread, NULL, refresh_process_log, (void*) process_log);
@@ -223,7 +223,7 @@ void start_menu_and_loop(menu_t* menu, void (*func)(int)) {
 void print_welcome() {
     attron(COLOR_PAIR(2) | A_BOLD);
     mvprintw(LINES - 3, 1, "Press <ENTER> to see the option selected");
-    mvprintw(LINES - 2, 1, "Up and Down arrow keys to navigate.");
+    mvprintw(LINES - 2, 1, "\"j\" to go down and \"k\" to go up.");
     attroff(COLOR_PAIR(2) | A_BOLD);
 }
 
@@ -394,7 +394,7 @@ void* refresh_process_log(void* log_win) {
                 proc_log_info_t* log_info = ((proc_log_info_t*)i->content);
                 if (!log_info->is_proc) {
                     wprintw(process_log->text_window, "No process running.\n");
-                    continue;
+                    break;
                 }
 
                 wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
@@ -409,7 +409,7 @@ void* refresh_process_log(void* log_win) {
                 wattroff(process_log->text_window, A_BOLD);
 
                 wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%d, ", log_info->remaining);
+                wprintw(process_log->text_window, "%dms, ", log_info->remaining);
 
                 wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(process_log->text_window, "PC: ");
@@ -508,7 +508,7 @@ log_window_t* init_process_log() {
     wattrset(text_window, COLOR_PAIR(2));
 
 
-    const char title[] = "Processos";
+    const char title[] = "Process View";
     title_print(title_window, ((COLS / 2) - strlen(title)) / 2, title);
 
     wattrset(main_window, COLOR_PAIR(3));
@@ -532,7 +532,7 @@ log_window_t* init_memory_log() {
         = derwin(main_window, LINES / 2 - 4, COLS / 2 - 3, 3, 1);
     scrollok(text_window, 1);
 
-    char title[] = "Memória";
+    char title[] = "Memory View";
     title_print(title_window, ((COLS / 2) - strlen(title)) / 2, title);
 
     wattrset(main_window, COLOR_PAIR(3));
