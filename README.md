@@ -21,11 +21,11 @@ Ou se quiser compilar e rodar em seguida, o seguinte comando pode fazer isso:
 
 Para mover no menu é usado "*j*" para ir para baixo e "*k*" para ir para cima.
 
-Há duas opções no menu, a primeira é "*Criar processo*", onde será pedido
+Há duas opções no menu, a primeira é "*Process Create*", onde será pedido
 o nome de um arquivo com o programa sintético, ocorrendo em seguido a
 execução do programa sintético, com logs de memória e de execução ao lado.
 
 É possível executar vários programas ao mesmo tempo, precisando somente inserir
-outros processos via o comando "*Criar Processo*".
+outros processos via o comando "*Process Create*".
 
-Para sair, é necessário somente selecionar "*Sair*" e apertar "*Enter*".
+Para sair, é necessário somente selecionar "*Exit*" e apertar "*Enter*".

@@ -72,13 +72,8 @@ typedef struct {
 } log_window_t;
 
 #define MAIN_MENU(M)                                                           \
-    M("Criar processo", CREATE)                                                \
-    M("Sair", EXIT)
-
-#define SEC_MENU(M)                                                            \
-    M("UHUL", CREATE)                                                          \
-    M("YEAH", DELETE)                                                          \
-    M("FUNCIONA", EXIT)
+    M("Process create", CREATE)                                                \
+    M("Exit", EXIT)
 
 void print_item_index(menu_t* menu, const ITEM* item);
 void menu_loop(menu_t* main_menu, void (*func)(int));
