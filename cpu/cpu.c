@@ -84,8 +84,13 @@ _Noreturn void cpu() {
                     segment_t* seg = segment_find(
                         &kernel->seg_table,
                         kernel->scheduler.scheduled_proc->seg_id);
+                    page_t* page = &seg->page_table[page_number];
                     instr_t instr
-                        = seg->page_table[page_number].code[page_offset];
+                        = page->code[page_offset];
+
+                    /* It set the used bit if it is not set */
+                    if (!page->used)
+                        page->used = 1;
 
                     proc_log_info_t* new_proc_info
                         = malloc(sizeof(proc_log_info_t));
