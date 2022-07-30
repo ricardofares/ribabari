@@ -32,8 +32,18 @@ void main_menu_functions(int x) {
     }
 }
 
+void end_screen(void) {
+	nocbreak();
+	echo();
+	curs_set(1);
+	keypad(stdscr, FALSE);
+	endwin();
+}
+
 #define SI(S, V) {S, V},
 int begin_terminal() {
+    atexit(end_screen);
+
     /* Initialize curses */
     init_screen();
 
@@ -58,7 +68,8 @@ int begin_terminal() {
     wrefresh(main_menu->menu_window->main_win);
     delete_menu(main_menu);
 
-    endwin();
+
+    end_screen();
 
     return 0;
 }

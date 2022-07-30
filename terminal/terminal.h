@@ -77,7 +77,10 @@ typedef struct {
 
 void print_item_index(menu_t* menu, const ITEM* item);
 void menu_loop(menu_t* main_menu, void (*func)(int));
+
 void init_screen();
+void end_screen(void);
+
 void start_menu_and_loop(menu_t* menu, void (*func)(int));
 void print_welcome();
 MENU* make_curses_menu(menu_t* menu);
