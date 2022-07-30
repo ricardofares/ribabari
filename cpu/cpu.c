@@ -63,6 +63,7 @@ _Noreturn void cpu() {
         }
         /* There is some process running */
         else {
+	    char* proc_name = strdup(kernel->scheduler.scheduled_proc->name);
             no_process = 0;
             do {
                 clock_gettime(CLOCK_REALTIME, &end);
@@ -96,7 +97,7 @@ _Noreturn void cpu() {
                         = malloc(sizeof(proc_log_info_t));
 
                     (*new_proc_info) = (proc_log_info_t) {
-                        .name = kernel->scheduler.scheduled_proc->name,
+                        .name = proc_name,
                         .remaining
                         = kernel->scheduler.scheduled_proc->remaining,
                         .pc = pc,
