@@ -154,6 +154,9 @@ void segment_free(segment_table_t* seg_table, int sid) {
     list_remove_node(seg_table->seg_list, seg_node);
 
     segment_t* seg = (segment_t *)seg_node->content;
+
+    seg_table->remaining += seg->size;
+
     free(seg->page_table);
     free(seg);
     free(seg_node);
