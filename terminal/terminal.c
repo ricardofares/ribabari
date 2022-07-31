@@ -449,24 +449,12 @@ void* refresh_process_log(void* log_win) {
     return NULL;
 }
 
-#define COLOR_BOLD "\e[1m"
-#define COLOR_OFF "\e[m"
 void* refresh_memory_log(void* mem_win) {
     log_window_t* memory_log = (log_window_t*) mem_win;
 
     list_t* seg_list = kernel->seg_table.seg_list;
-    /* struct timespec start; */
-    /* struct timespec end; */
-    /* clock_gettime(CLOCK_REALTIME, &start); */
     while (1) {
-        /* clock_gettime(CLOCK_REALTIME, &end); */
-        /* const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L */
-        /*                     + (end.tv_nsec - start.tv_nsec); */
-
-        /* if (elapsed >= 1000000000L) { */
-            /* start = end; */
-
-        sem_wait(&mem_mutex);
+	    sem_wait(&mem_mutex);
             wmove(memory_log->text_window, 0, 0);
             wclear(memory_log->text_window);
 
@@ -500,11 +488,15 @@ void* refresh_memory_log(void* mem_win) {
                 wprintw(memory_log->text_window, "%s", buffer);
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
+
+                wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
+		mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes", kernel->seg_table.remaining);
+                wattron(memory_log->title_window, COLOR_PAIR(3));
             }
             box(memory_log->title_window, 0, 0);
             box(memory_log->main_window, 0, 0);
             wrefresh(memory_log->main_window);
-        /* } */
+
     }
 
     return NULL;
