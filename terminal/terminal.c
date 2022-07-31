@@ -483,7 +483,7 @@ void* refresh_memory_log(void* mem_win) {
                 wattroff(memory_log->text_window, A_BOLD);
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%6d avaiable, page %d in use\n",
+                snprintf(buffer, 100, "%6d available, page %d in use\n",
                          seg->page_qtd, seg->page_count);
                 wprintw(memory_log->text_window, "%s", buffer);
 
