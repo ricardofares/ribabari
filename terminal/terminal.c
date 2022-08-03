@@ -454,6 +454,11 @@ void* refresh_memory_log(void* mem_win) {
 
     list_t* seg_list = kernel->seg_table.seg_list;
     while (1) {
+	    // Print Memory Remaining a the title
+   	    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
+   	    mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes", kernel->seg_table.remaining);
+   	    wattron(memory_log->title_window, COLOR_PAIR(3));
+
 	    sem_wait(&mem_mutex);
             wmove(memory_log->text_window, 0, 0);
             wclear(memory_log->text_window);
@@ -489,9 +494,6 @@ void* refresh_memory_log(void* mem_win) {
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
 
-                wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
-		mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes", kernel->seg_table.remaining);
-                wattron(memory_log->title_window, COLOR_PAIR(3));
             }
             box(memory_log->title_window, 0, 0);
             box(memory_log->main_window, 0, 0);
