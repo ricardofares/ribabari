@@ -25,4 +25,6 @@ add_executable(so_project
         sched/sched.h
         semaphore/semaphore.c
         semaphore/semaphore.h
+        disk/disk.c
+        disk/disk.h
         )

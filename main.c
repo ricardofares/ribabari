@@ -3,13 +3,14 @@
 #include "cpu/cpu.h"
 #endif // OS_CPU_LOADED
 
-#include <pthread.h>
 #include "terminal/terminal.h"
+
 #define HOLD_MAIN_THREAD while(1);
 
 int main() {
     log_list_init();
 
+    disk_init();
     cpu_init();
     kernel_init();
 

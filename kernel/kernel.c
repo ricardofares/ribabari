@@ -19,7 +19,7 @@
  * @param filepath the file path containing
  *                 the process specifications
  */
-void process_create(const char* filepath);
+static void process_create(const char* filepath);
 
 /**
  * It finishes the specified process removing
@@ -29,7 +29,7 @@ void process_create(const char* filepath);
  *
  * @param proc the process to be finished
  */
-void process_finish(process_t* proc);
+static void process_finish(process_t* proc);
 
 /**
  * It parses the synthetic program written in a file.
@@ -39,7 +39,7 @@ void process_finish(process_t* proc);
  *
  * @param filepath the filepath
  */
-process_t* parse_synthetic_program(FILE* fp, char* buf);
+static process_t* parse_synthetic_program(FILE* fp, char* buf);
 
 /**
  * It reads the semaphores specified in the
@@ -52,7 +52,7 @@ process_t* parse_synthetic_program(FILE* fp, char* buf);
  *                 in the synthetic program that
  *                 contains the requested semaphores.
  */
-void read_semaphores(process_t* proc, char* sem_line);
+static void read_semaphores(process_t* proc, char* sem_line);
 
 /**
  * It reads the code specified in the synthetic
@@ -69,7 +69,7 @@ void read_semaphores(process_t* proc, char* sem_line);
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(char* buf, FILE *fp, int *code_len);
+static instr_t* read_code(char* buf, FILE *fp, int *code_len);
 
 /**
  * It returns the value 1 if the specified processes
@@ -87,7 +87,7 @@ static int process_comparator(void *p1, void *p2);
  * It causes the process who invoked this
  * function to sleep, that is, to be blocked.
  */
-void sleep();
+static void sleep();
 
 /**
  * It causes the specified process to be
@@ -95,7 +95,15 @@ void sleep();
  *
  * @param proc the process to be unblocked.
  */
-void wakeup(process_t* proc);
+static void wakeup(process_t* proc);
+
+/**
+ * It requests a disk read operation. Further,
+ * the process which has requested the disk
+ * operation is represented by the current
+ * scheduled process.
+ */
+static void disk_read_request();
 
 /* Kernel Function Definitions */
 
@@ -133,6 +141,12 @@ void kernel_init() {
 
 #if DEBUG
     printf("Scheduler initialized.\n");
+#endif // DEBUG
+
+    disk_scheduler_init(&kernel->disk_scheduler);
+
+#if DEBUG
+    printf("Disk Scheduler initialized.\n");
 #endif // DEBUG
 
     semaphore_table_init(&kernel->sem_table);
@@ -178,6 +192,10 @@ void sysCall(kernel_function_t func, void *arg) {
         }
         case SEMAPHORE_V: {
             semaphore_V((semaphore_t *)arg, wakeup);
+            break;
+        }
+        case DISK_REQUEST: {
+            disk_read_request();
             break;
         }
     }
@@ -261,7 +279,7 @@ void eval(process_t* proc, instr_t* instr) {
  * @param filepath the file path containing
  *                 the process specifications
  */
-void process_create(const char* filepath) {
+static void process_create(const char* filepath) {
     FILE *fp;
     process_t* proc;
     instr_t *code;
@@ -297,7 +315,7 @@ void process_create(const char* filepath) {
  *
  * @param proc the process to be finished
  */
-void process_finish(process_t* proc) {
+static void process_finish(process_t* proc) {
     if (proc) {
         /* Remove the node from the PCB */
         list_node_t* pcb_proc_node = list_search(kernel->proc_table, proc, process_comparator);
@@ -334,7 +352,7 @@ void process_finish(process_t* proc) {
  * It causes the process who invoked this
  * function to sleep, that is, to be blocked.
  */
-void sleep() {
+static void sleep() {
     /* It causes the current scheduled process to be blocked */
     /* in which that has been caused by a semaphore request */
     sysCall(PROCESS_INTERRUPT, (void *) SEMAPHORE_BLOCKED);
@@ -346,7 +364,7 @@ void sleep() {
  *
  * @param proc the process to be unblocked.
  */
-void wakeup(process_t* proc) {
+static void wakeup(process_t* proc) {
     schedule_wake_process(&kernel->scheduler, proc);
 }
 
@@ -358,7 +376,7 @@ void wakeup(process_t* proc) {
  *
  * @param filepath the filepath
  */
-process_t* parse_synthetic_program(FILE* fp, char* buf) {
+static process_t* parse_synthetic_program(FILE* fp, char* buf) {
     process_t *proc = (process_t *)malloc(sizeof(process_t));
 
     /* It checks if the process could not be allocated */
@@ -410,7 +428,7 @@ process_t* parse_synthetic_program(FILE* fp, char* buf) {
  *                 in the synthetic program that
  *                 contains the requested semaphores.
  */
-void read_semaphores(process_t* proc, char* sem_line) {
+static void read_semaphores(process_t* proc, char* sem_line) {
     const size_t len = strlen(sem_line);
     int sem_count = 1;
     int i;
@@ -455,7 +473,7 @@ void read_semaphores(process_t* proc, char* sem_line) {
  * @return an array of instructions read from a file
  *         that specifies the process.
  */
-instr_t* read_code(char* buf, FILE *fp, int *code_len) {
+static instr_t* read_code(char* buf, FILE *fp, int *code_len) {
     instr_t* code;
     long int code_section;
     int i;
@@ -498,3 +516,12 @@ static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
 }
 
+/**
+ * It requests a disk read operation. Further,
+ * the process which has requested the disk
+ * operation is represented by the current
+ * scheduled process.
+ */
+static void disk_read_request() {
+    schedule_process(&kernel->scheduler, IO_REQUESTED);
+}
