@@ -10,10 +10,6 @@
 
 /* Scheduler Internal Function Prototypes */
 
-static int proc_cmp(void* p1, void *p2) {
-    return ((process_t *) p1)->id == ((process_t *) p2)->id;
-}
-
 /**
  * It creates a scheduler queue containing
  * the specified quantum-time (or time slice)
@@ -87,19 +83,35 @@ void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags) {
 }
 
 /**
- * It wakes up the specified process.
+ * It unblocks the specified process and
+ * put it in the specified queue.
  *
  * @param scheduler the scheduler
  * @param proc the process
+ * @param queue_flag the queue to put the process
  */
-void schedule_wake_process(scheduler_t* scheduler, process_t* proc) {
+void schedule_unblock_process(scheduler_t* scheduler, process_t* proc, scheduler_queue_flag_t queue_flag) {
     list_node_t* proc_node;
 
     if (!(proc_node = list_search(scheduler->blocked_queue->queue, proc, proc_cmp)))
         return;
 
     list_remove_node(scheduler->blocked_queue->queue, proc_node);
-    list_add(scheduler->high_queue->queue, proc);
+
+    switch (queue_flag) {
+        case HIGH_QUEUE: {
+            list_add(scheduler->high_queue->queue, proc);
+            break;
+        }
+        case LOW_QUEUE: {
+            list_add(scheduler->low_queue->queue, proc);
+            break;
+        }
+        default: {
+            printf("Unknown scheduler queue.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
 }
 
 /* Scheduler Internal Function Definitions */

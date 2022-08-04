@@ -36,6 +36,11 @@ typedef enum SchedulerFlags {
     SEMAPHORE_BLOCKED = 0x4
 } scheduler_flag_t;
 
+typedef enum SchedulerQueueFlag {
+    LOW_QUEUE = 0,
+    HIGH_QUEUE = 1
+} scheduler_queue_flag_t;
+
 typedef struct SchedulerQueue {
     list_t* queue;
     int quantum; /* or time slice */
@@ -72,11 +77,13 @@ void scheduler_init(scheduler_t* scheduler);
 void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags);
 
 /**
- * It wakes up the specified process.
+ * It unblocks the specified process and
+ * put it in the specified queue.
  *
  * @param scheduler the scheduler
  * @param proc the process
+ * @param queue_flag the queue to put the process
  */
-void schedule_wake_process(scheduler_t* scheduler, process_t* proc);
+void schedule_unblock_process(scheduler_t* scheduler, process_t* proc, scheduler_queue_flag_t queue_flag);
 
 #endif // OS_PROJECT_SCHED_H

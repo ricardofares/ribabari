@@ -72,3 +72,33 @@ void disk_scheduler_init(disk_scheduler_t *disk_scheduler) {
     disk_scheduler->forward_dir = 1;
     disk_scheduler->curr_track = 0;
 }
+
+/**
+ * It requests a read/write operation from the
+ * disk on the specified track.
+ *
+ * @param process the process which request the
+ *                read/write operation.
+ * @param disk_scheduler the disk scheduler
+ * @param track the requested track
+ */
+void disk_request(process_t* process, disk_scheduler_t *disk_scheduler, int track) {
+    int time = DISK_OPERATION_TIME;
+
+    /* It is going from the inner track to the outer one */
+    if (disk_scheduler->forward_dir) {
+        if (track >= disk_scheduler->curr_track)
+            time += (track - disk_scheduler->curr_track) * DISK_TRACK_MOVE_TIME;
+        else time += ((DISK_TRACK_LIMIT - disk_scheduler->curr_track) + (DISK_TRACK_LIMIT - track)) * DISK_TRACK_MOVE_TIME;
+    }
+    /* It is going from the outer track to the inner one */
+    else {
+        if (track < disk_scheduler->curr_track)
+            time += (disk_scheduler->curr_track - track) * DISK_TRACK_MOVE_TIME;
+        else time += (disk_scheduler->curr_track + track) * DISK_TRACK_MOVE_TIME;
+    }
+
+    process->remaining -= time;
+
+    interruptControl(DISK_FINISH, process);
+}

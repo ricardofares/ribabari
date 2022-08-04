@@ -2,6 +2,7 @@
 #define OS_PROJECT_DISK_H
 
 #include "../utils/list.h"
+#include "../process/process.h"
 
 /**
  * It represents an integer constant
@@ -9,6 +10,9 @@
  * hard disk contains.
  */
 #define DISK_TRACK_LIMIT (200)
+
+#define DISK_OPERATION_TIME (5000)
+#define DISK_TRACK_MOVE_TIME (100)
 
 typedef struct DiskScheduler {
     /**
@@ -57,5 +61,16 @@ _Noreturn void disk();
  *                       initialized.
  */
 void disk_scheduler_init(disk_scheduler_t *disk_scheduler);
+
+/**
+ * It requests a read/write operation from the
+ * disk on the specified track.
+ *
+ * @param process the process which request the
+ *                read/write operation.
+ * @param disk_scheduler the disk scheduler
+ * @param track the requested track
+ */
+void disk_request(process_t* process, disk_scheduler_t *disk_scheduler, int track);
 
 #endif // OS_PROJECT_DISK_H

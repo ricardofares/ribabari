@@ -97,14 +97,6 @@ static void sleep();
  */
 static void wakeup(process_t* proc);
 
-/**
- * It requests a disk read operation. Further,
- * the process which has requested the disk
- * operation is represented by the current
- * scheduled process.
- */
-static void disk_read_request();
-
 /* Kernel Function Definitions */
 
 /**
@@ -195,7 +187,9 @@ void sysCall(kernel_function_t func, void *arg) {
             break;
         }
         case DISK_REQUEST: {
-            disk_read_request();
+            process_t* curr_proc = kernel->scheduler.scheduled_proc;
+            schedule_process(&kernel->scheduler, IO_REQUESTED);
+            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg);
             break;
         }
     }
@@ -210,20 +204,24 @@ void sysCall(kernel_function_t func, void *arg) {
  */
 void interruptControl(kernel_function_t func, void *arg) {
     switch (func) {
-    case MEM_LOAD_FINISH: {
-        memory_request_t* req = (memory_request_t *)arg;
-        process_t* proc = req->proc;
+        case MEM_LOAD_FINISH: {
+            memory_request_t* req = (memory_request_t *)arg;
+            process_t* proc = req->proc;
 
-        /* Add the process into the PCB */
-        list_add(kernel->proc_table, proc);
+            /* Add the process into the PCB */
+            list_add(kernel->proc_table, proc);
 
-        /* Add the process into the scheduling queue */
-        proc->state = READY;
-        if (proc->priority == 1)
-            list_add(kernel->scheduler.high_queue->queue, proc);
-        else list_add(kernel->scheduler.low_queue->queue, proc);
-        break;
-    }
+            /* Add the process into the scheduling queue */
+            proc->state = READY;
+            if (proc->priority == 1)
+                list_add(kernel->scheduler.high_queue->queue, proc);
+            else list_add(kernel->scheduler.low_queue->queue, proc);
+            break;
+        }
+        case DISK_FINISH: {
+            schedule_unblock_process(&kernel->scheduler, (process_t *)arg, LOW_QUEUE);
+            break;
+        }
     }
 }
 
@@ -264,6 +262,14 @@ void eval(process_t* proc, instr_t* instr) {
 #endif // OS_EVAL_DEBUG
         sysCall(SEMAPHORE_V, semaphore_find(&kernel->sem_table, instr->sem));
         proc->remaining = MAX(0, proc->remaining - 200);
+        break;
+    }
+    case READ:
+    case WRITE: {
+#if OS_EVAL_DEBUG
+        printf("Process %s has requested a read/write operation at track %d.\n", proc->name, instr->value);
+#endif // OS_EVAL_DEBUG
+        sysCall(DISK_REQUEST, instr->value);
         break;
     }
     }
@@ -365,7 +371,7 @@ static void sleep() {
  * @param proc the process to be unblocked.
  */
 static void wakeup(process_t* proc) {
-    schedule_wake_process(&kernel->scheduler, proc);
+    schedule_unblock_process(&kernel->scheduler, proc, HIGH_QUEUE);
 }
 
 /**
@@ -514,14 +520,4 @@ static instr_t* read_code(char* buf, FILE *fp, int *code_len) {
  */
 static int process_comparator(void *p1, void *p2) {
     return ((process_t *)p1)->id == ((process_t *) p2)->id;
-}
-
-/**
- * It requests a disk read operation. Further,
- * the process which has requested the disk
- * operation is represented by the current
- * scheduled process.
- */
-static void disk_read_request() {
-    schedule_process(&kernel->scheduler, IO_REQUESTED);
 }
