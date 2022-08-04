@@ -2,22 +2,7 @@
 
 #include "memory.h"
 
-
 /* Segment Internal Function Definitions */
-
-/**
- * It returns 1 if the segments have been matched.
- * Otherwise, it will return 0.
- *
- * @param seg1 the first segment
- * @param seg2 the second segment
- *
- * @return 1 if the segments have been matched;
- *         otherwise will return 0.
- */
-static int seg_cmp(void* seg1, void* seg2) {
-    return ((segment_t *)seg1)->id == ((segment_t *)seg2)->id;
-}
 
 /**
  * It creates a segment and update the segment
@@ -73,6 +58,39 @@ static void segment_add(segment_table_t* seg_table, segment_t* seg) {
     seg_table->seg_list_size++;
 }
 
+/**
+ * It swaps the necessary pages that are candidates for
+ * being unloaded from the main memory using the second
+ * chance algorithm to be able to allocate pages provided
+ * by a segment.
+ *
+ * @param seg_table the segment table
+ * @param seg the segment containing the pages to
+ *            to be loaded into the memory
+ */
+static void memory_page_swap(segment_table_t* seg_table, segment_t* seg) {
+    int i;
+    int freed = 0;
+    list_node_t* curr;
+
+    for (curr = seg_table->seg_list->head; curr != NULL; curr = curr->next) {
+        segment_t* curr_seg = (segment_t *)curr->content;
+
+        for (i = 0; i < curr_seg->page_count; i++) {
+            page_t* page = curr_seg->page_table + i;
+
+            /* If the page is being referenced, then the */
+            /* used bit is cleared (giving to it a second chance) */
+            if (page->used)
+                page->used = 0;
+            else freed += PAGE_SIZE;
+
+            if (freed >= seg->size)
+                break;
+        }
+    }
+}
+
 /* Segment Table Function Definitions */
 
 /**
@@ -83,6 +101,7 @@ static void segment_add(segment_table_t* seg_table, segment_t* seg) {
 void segment_table_init(segment_table_t* seg_table) {
     seg_table->seg_list = list_init();
     seg_table->seg_list_size = 0;
+    seg_table->remaining = 1024 * 1024 * 1024;
 }
 
 /* Segment Function Definitions */
@@ -135,6 +154,9 @@ void segment_free(segment_table_t* seg_table, int sid) {
     list_remove_node(seg_table->seg_list, seg_node);
 
     segment_t* seg = (segment_t *)seg_node->content;
+
+    seg_table->remaining += seg->size;
+
     free(seg->page_table);
     free(seg);
     free(seg_node);
@@ -163,6 +185,14 @@ void mem_req_init(memory_request_t* req, process_t* proc, instr_t* code) {
  */
 void mem_req_load(memory_request_t* req, segment_table_t* seg_table) {
     segment_t* seg = segment_create(req);
+
+    const int new_remaining = seg_table->remaining - seg->size;
+
+    /* If the memory has available space to allocate the segment */
+    /* then update the remaining space */
+    if (new_remaining >= 0)
+        seg_table->remaining = new_remaining;
+    else memory_page_swap(seg_table, seg);
 
     /* Populate the segment's page with the program code */
     segment_populate(seg, req->code, req->proc->code_len);

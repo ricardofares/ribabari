@@ -4,6 +4,7 @@
 #include "../memory/memory.h"
 #include "../sched/sched.h"
 #include "../process/instruction.h"
+#include "../disk/disk.h"
 
 typedef enum KernelFunction {
     /* Process Related Functions */
@@ -11,7 +12,7 @@ typedef enum KernelFunction {
     PROCESS_CREATE = 2,
     PROCESS_FINISH = 3,
 
-    /* Disk Related Functions */
+    /* DiskScheduler Related Functions */
     DISK_REQUEST = 4,
     DISK_FINISH = 5,
 
@@ -42,6 +43,9 @@ typedef struct Kernel {
 
     /* Scheduler Information */
     scheduler_t scheduler;
+
+    /* Disk Scheduler Information */
+    disk_scheduler_t disk_scheduler;
 
     /* Semaphore Table Information */
     semaphore_table_t sem_table;

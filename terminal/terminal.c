@@ -32,8 +32,18 @@ void main_menu_functions(int x) {
     }
 }
 
+void end_screen(void) {
+	nocbreak();
+	echo();
+	curs_set(1);
+	keypad(stdscr, FALSE);
+	endwin();
+}
+
 #define SI(S, V) {S, V},
 int begin_terminal() {
+    atexit(end_screen);
+
     /* Initialize curses */
     init_screen();
 
@@ -58,7 +68,8 @@ int begin_terminal() {
     wrefresh(main_menu->menu_window->main_win);
     delete_menu(main_menu);
 
-    endwin();
+
+    end_screen();
 
     return 0;
 }
@@ -402,28 +413,28 @@ void* refresh_process_log(void* log_win) {
                 wattroff(process_log->text_window, A_BOLD);
 
                 wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%s, ", log_info->name);
+                wprintw(process_log->text_window, "%10s, ", log_info->name);
 
                 wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(process_log->text_window, "TIME  REMAINING: ");
+                wprintw(process_log->text_window, "REMAINING: ");
                 wattroff(process_log->text_window, A_BOLD);
 
                 wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%dms, ", log_info->remaining);
+                wprintw(process_log->text_window, "%4dms, ", log_info->remaining);
 
                 wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(process_log->text_window, "PC: ");
                 wattroff(process_log->text_window, A_BOLD);
 
                 wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%d, ", log_info->pc);
+                wprintw(process_log->text_window, "%4d, ", log_info->pc);
 
                 wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(process_log->text_window, "ID: ");
                 wattroff(process_log->text_window, A_BOLD);
 
                 wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%d.\n", log_info->id);
+                wprintw(process_log->text_window, "%2d.\n", log_info->id);
             }
 
             refresh();
@@ -438,24 +449,17 @@ void* refresh_process_log(void* log_win) {
     return NULL;
 }
 
-#define COLOR_BOLD "\e[1m"
-#define COLOR_OFF "\e[m"
 void* refresh_memory_log(void* mem_win) {
     log_window_t* memory_log = (log_window_t*) mem_win;
 
     list_t* seg_list = kernel->seg_table.seg_list;
-    /* struct timespec start; */
-    /* struct timespec end; */
-    /* clock_gettime(CLOCK_REALTIME, &start); */
     while (1) {
-        /* clock_gettime(CLOCK_REALTIME, &end); */
-        /* const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L */
-        /*                     + (end.tv_nsec - start.tv_nsec); */
+	    // Print Memory Remaining a the title
+   	    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
+   	    mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes", kernel->seg_table.remaining);
+   	    wattron(memory_log->title_window, COLOR_PAIR(3));
 
-        /* if (elapsed >= 1000000000L) { */
-            /* start = end; */
-
-        sem_wait(&mem_mutex);
+	    sem_wait(&mem_mutex);
             wmove(memory_log->text_window, 0, 0);
             wclear(memory_log->text_window);
 
@@ -468,32 +472,33 @@ void* refresh_memory_log(void* mem_win) {
                 wattroff(memory_log->text_window, A_BOLD);
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%d | ", seg->id);
-                wprintw(memory_log->text_window, buffer);
+                snprintf(buffer, 100, "%2d, ", seg->id);
+                wprintw(memory_log->text_window, "%s", buffer);
 
                 wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(memory_log->text_window, "Segment Size: ");
                 wattroff(memory_log->text_window, A_BOLD);
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%d bytes | ", seg->size);
-                wprintw(memory_log->text_window, buffer);
+                snprintf(buffer, 100, "%10d bytes, ", seg->size);
+                wprintw(memory_log->text_window, "%s", buffer);
 
                 wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(memory_log->text_window, "Pages count: ");
                 wattroff(memory_log->text_window, A_BOLD);
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%d avaiable, page %d in use -> \n",
+                snprintf(buffer, 100, "%6d available, page %d in use\n",
                          seg->page_qtd, seg->page_count);
-                wprintw(memory_log->text_window, buffer);
+                wprintw(memory_log->text_window, "%s", buffer);
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
+
             }
             box(memory_log->title_window, 0, 0);
             box(memory_log->main_window, 0, 0);
             wrefresh(memory_log->main_window);
-        /* } */
+
     }
 
     return NULL;

@@ -2,6 +2,8 @@
 #define OS_PROJECT_MEMORY_H
 
 #define INSTRUCTIONS_PER_PAGE (256)
+#define KILOBYTE (1024)
+#define PAGE_SIZE (4 * KILOBYTE)
 #define PAGE_NUMBER(x) ((x) / INSTRUCTIONS_PER_PAGE)
 #define PAGE_OFFSET(x) ((x) % INSTRUCTIONS_PER_PAGE)
 
@@ -13,9 +15,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define KILOBYTE (1024)
-#define PAGE_SIZE (4 * KILOBYTE)
-
 typedef struct Page {
     instr_t code[INSTRUCTIONS_PER_PAGE];
     int used;
@@ -23,7 +22,15 @@ typedef struct Page {
 
 typedef struct Segment {
     /* General Segment Information */
+    /**
+     * It holds the segment id.
+     */
     int id;
+
+    /**
+     * It holds the segment size
+     * measured in bytes.
+     */
     int size;
 
     /* Page Table Information */
@@ -45,6 +52,13 @@ typedef struct Segment_Table {
      * list size.
      */
     int seg_list_size;
+
+    /**
+     * It holds the amount of available
+     * memory to be used by processes in
+     * bytes.
+     */
+    int remaining;
 } segment_table_t;
 
 /**
