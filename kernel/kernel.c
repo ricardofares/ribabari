@@ -70,6 +70,12 @@ void kernel_init() {
 #if OS_KERNEL_DEBUG
     printf("Semaphore table initialized.\n");
 #endif // OS_KERNEL_DEBUG
+
+    file_table_init(&kernel->file_table);
+
+#if OS_KERNEL_DEBUG
+    printf("File table initialized.\n");
+#endif // OS_KERNEL_DEBUG
 }
 
 /**

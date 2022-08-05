@@ -6,6 +6,7 @@
 #include "../process/instruction.h"
 #include "../disk/disk.h"
 #include "../io/print.h"
+#include "../file/file.h"
 
 typedef enum KernelFunction {
     /* Process Related Functions */
@@ -51,6 +52,9 @@ typedef struct Kernel {
 
     /* Semaphore Table Information */
     semaphore_table_t sem_table;
+
+    /* File Table Information */
+    file_table_t file_table;
 
     int pc; /* Program Counter */
 } kernel_t;
