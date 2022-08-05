@@ -58,17 +58,17 @@ void disk_log_init() { disk_log_list = list_init(); }
 
 void main_menu_functions(int x) {
     coordinates_t whatever = {
-        .begin_x = 1,
-        .begin_y = 1,
+        .begin_x = -1,
+        .begin_y = -1,
     };
     char* input;
     switch (x) {
         case CREATE:
-            input = get_input_from_window("What the name of the file?",
+            input = get_input_from_window("What is the name of the file?",
                                           whatever, 40);
             if (access(input, F_OK)) {
                 print_with_window(
-                    "The file couldn't be executed or doesn't exist.",
+                    "The file could not be executed or it does not exist.",
                     "WARNING.", -1, -1);
                 return;
             }
@@ -393,6 +393,11 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
     echo();
 
     const int title_len = strlen(title);
+
+    if (coordinates.begin_y < 0) {
+        coordinates.begin_y = LINES / 2 - 1;
+        coordinates.begin_x = (COLS - buffer_size + BOX_SIZE) / 2;
+    }
     io_win.main_window = newwin(5, buffer_size + BOX_SIZE, coordinates.begin_y,
                                 coordinates.begin_x);
 
