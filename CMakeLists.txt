@@ -29,4 +29,8 @@ add_executable(so_project
         disk/disk.h
         terminal/terminal.h
         terminal/terminal.c
+        print/print.c
+        print/print.h
+        file/file.c
+        file/file.h
         )
