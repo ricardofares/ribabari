@@ -70,7 +70,10 @@ void disk_scheduler_init(disk_scheduler_t *disk_scheduler);
  *                read/write operation.
  * @param disk_scheduler the disk scheduler
  * @param track the requested track
+ * @param read if is 1 indicates that the disk request
+ *             is a read operation; otherwise, it indicates
+ *             a write operation.
  */
-void disk_request(process_t* process, disk_scheduler_t *disk_scheduler, int track);
+void disk_request(process_t* process, disk_scheduler_t *disk_scheduler, int track, int read);
 
 #endif // OS_PROJECT_DISK_H

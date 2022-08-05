@@ -186,10 +186,30 @@ void sysCall(kernel_function_t func, void *arg) {
             semaphore_V((semaphore_t *)arg, wakeup);
             break;
         }
-        case DISK_REQUEST: {
+        case DISK_READ_REQUEST: {
             process_t* curr_proc = kernel->scheduler.scheduled_proc;
+
+            /* It schedules a next process and put the current one into the blocked queue */
             schedule_process(&kernel->scheduler, IO_REQUESTED);
-            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg);
+
+            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg, 1);
+            break;
+        }
+        case DISK_WRITE_REQUEST: {
+            process_t* curr_proc = kernel->scheduler.scheduled_proc;
+
+            /* It schedules a next process and put the current one into the blocked queue */
+            schedule_process(&kernel->scheduler, IO_REQUESTED);
+
+            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg, 0);
+            break;
+        }
+        case PRINT_REQUEST: {
+            process_t* curr_proc = kernel->scheduler.scheduled_proc;
+
+            /* It schedules a next process and put the current one into the blocked queue */
+            schedule_process(&kernel->scheduler, IO_REQUESTED);
+
             break;
         }
     }
@@ -218,7 +238,8 @@ void interruptControl(kernel_function_t func, void *arg) {
             else list_add(kernel->scheduler.low_queue->queue, proc);
             break;
         }
-        case DISK_FINISH: {
+        case DISK_FINISH:
+        case PRINT_FINISH: {
             schedule_unblock_process(&kernel->scheduler, (process_t *)arg, LOW_QUEUE);
             break;
         }
@@ -264,14 +285,20 @@ void eval(process_t* proc, instr_t* instr) {
         proc->remaining = MAX(0, proc->remaining - 200);
         break;
     }
-    case READ:
-    case WRITE: {
+    case READ: {
 #if OS_EVAL_DEBUG
-        printf("Process %s has requested a read/write operation at track %d.\n", proc->name, instr->value);
+        printf("Process %s has requested a read operation at track %d.\n", proc->name, instr->value);
 #endif // OS_EVAL_DEBUG
-        sysCall(DISK_REQUEST, instr->value);
+        sysCall(DISK_READ_REQUEST, instr->value);
         break;
     }
+    case WRITE: {
+#if OS_EVAL_DEBUG
+            printf("Process %s has requested a write operation at track %d.\n", proc->name, instr->value);
+#endif // OS_EVAL_DEBUG
+            sysCall(DISK_WRITE_REQUEST, instr->value);
+            break;
+        }
     }
 }
 

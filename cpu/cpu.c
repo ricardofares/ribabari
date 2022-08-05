@@ -5,6 +5,8 @@
 #include "../terminal/terminal.h"
 #include "cpu.h"
 
+#define ONE_SECOND_NS (1000000000L)
+
 /**
  * A pointer to the kernel structure.
  */
@@ -67,10 +69,10 @@ _Noreturn void cpu() {
             no_process = 0;
             do {
                 clock_gettime(CLOCK_REALTIME, &end);
-                const int elapsed = (end.tv_sec - start.tv_sec) * 1000000000L
+                const int elapsed = (end.tv_sec - start.tv_sec) * ONE_SECOND_NS
                                     + (end.tv_nsec - start.tv_nsec);
 
-                if (elapsed >= 1000000000L) {
+                if (elapsed >= ONE_SECOND_NS) {
                     start = end;
 
                     /* It calculates the physical memory address from the
