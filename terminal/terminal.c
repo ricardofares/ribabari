@@ -505,9 +505,9 @@ void* refresh_memory_log(void* mem_win) {
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
                 const int p_inuse_index = page_inuse_index(seg);
-                if (p_inuse_index)
-                    snprintf(buffer, 100, "%6d available, page %d in use\n", seg->page_qtd, p_inuse_index + 1);
-                else snprintf(buffer, 100, "%6d available, no page is being used\n", seg->page_qtd);
+                if (p_inuse_index == -1)
+                    snprintf(buffer, 100, "%6d available, no page is being used\n", seg->page_qtd);
+                else snprintf(buffer, 100, "%6d available, page %d in use\n", seg->page_qtd, p_inuse_index + 1);
                 wprintw(memory_log->text_window, "%s", buffer);
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
