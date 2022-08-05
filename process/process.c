@@ -172,6 +172,7 @@ static process_t* parse_synthetic_program(FILE* fp, char* buf) {
     proc->pc = 0;
     proc->state = NEW;
     proc->remaining = 0;
+    proc->o_files = list_init();
 
     /* Dependent file information */
     fgets(buf, BUF_LEN_PARSE, fp);
@@ -282,4 +283,28 @@ static void read_semaphores(process_t* proc, char* sem_line) {
     for (i = 0; i < sem_count; i++)
         printf(" - %s\n", proc->semaphores[i]);
 #endif
+}
+
+/* Process File System Related Function Prototypes */
+
+/**
+ * It returns 1 if this process has already opened
+ * the inode with the specified inumber. Otherwise,
+ * 0 is returned.
+ *
+ * @param process the process to be checked
+ * @param inumber the inode number
+ *
+ * @return 1 if this process has already opened
+ *            the inode with the specified inumber.
+ *            Otherwise, 0 is returned.
+ */
+int has_opened_file(process_t* process, int inumber) {
+    list_node_t* curr_node;
+
+    for (curr_node = process->o_files->head; curr_node != NULL;
+         curr_node = curr_node->next)
+        if (((int)curr_node->content) == inumber)
+            return 1;
+    return 0;
 }

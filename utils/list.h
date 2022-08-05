@@ -38,6 +38,11 @@ typedef struct List {
      * tail node.
      */
     list_node_t *tail;
+
+    /**
+     * It stores the list size.
+     */
+    int size;
 } list_t;
 
 /* List Node Prototypes */

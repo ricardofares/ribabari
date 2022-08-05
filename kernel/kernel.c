@@ -117,21 +117,43 @@ void sysCall(kernel_function_t func, void *arg) {
             break;
         }
         case DISK_READ_REQUEST: {
+            const int track = (int)arg;
             process_t* curr_proc = kernel->scheduler.scheduled_proc;
 
             /* It schedules a next process and put the current one into the blocked queue */
             schedule_process(&kernel->scheduler, IO_REQUESTED);
 
-            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg, 1);
+            /* It requests a disk read operation for the specified track */
+            disk_request(curr_proc, &kernel->disk_scheduler, track, 1);
+
+            fs_op_request_t fs_req;
+            fs_req.proc = curr_proc;
+            fs_req.track = track;
+            fs_req.read = 1;
+
+            /* It requests a file system request for handling the file */
+            /* that is being read at the specified track in the disk */
+            sysCall(FS_REQUEST, (void *)(&fs_req));
             break;
         }
         case DISK_WRITE_REQUEST: {
+            const int track = (int)arg;
             process_t* curr_proc = kernel->scheduler.scheduled_proc;
 
             /* It schedules a next process and put the current one into the blocked queue */
             schedule_process(&kernel->scheduler, IO_REQUESTED);
 
-            disk_request(curr_proc, &kernel->disk_scheduler, (int)arg, 0);
+            /* It requests a disk write operation for the specified track */
+            disk_request(curr_proc, &kernel->disk_scheduler, track, 0);
+
+            fs_op_request_t fs_req;
+            fs_req.proc = curr_proc;
+            fs_req.track = track;
+            fs_req.read = 0;
+
+            /* It requests a file system request for handling the file */
+            /* that is being written at the specified track in the disk */
+            sysCall(FS_REQUEST, (void *)(&fs_req));
             break;
         }
         case PRINT_REQUEST: {
@@ -141,6 +163,14 @@ void sysCall(kernel_function_t func, void *arg) {
             schedule_process(&kernel->scheduler, IO_REQUESTED);
 
             print_request(curr_proc, (int)arg);
+            break;
+        }
+        case FS_REQUEST: {
+            fs_op_request_t* fs_req = (fs_op_request_t *)arg;
+
+            if (fs_req->read)
+                fs_read_request(&kernel->file_table, fs_req->proc, DISK_BLOCK(fs_req->track));
+            else fs_write_request(&kernel->file_table, fs_req->proc, DISK_BLOCK(fs_req->track));
             break;
         }
     }
@@ -170,7 +200,11 @@ void interruptControl(kernel_function_t func, void *arg) {
             break;
         }
         /* When the process comes back from an I/O request it is put at the low queue */
-        case DISK_FINISH:
+        case DISK_FINISH: {
+            schedule_unblock_process(&kernel->scheduler, (process_t *)arg, LOW_QUEUE);
+            break;
+        }
+        /* When the process comes back from an I/O request it is put at the low queue */
         case PRINT_FINISH: {
             schedule_unblock_process(&kernel->scheduler, (process_t *)arg, LOW_QUEUE);
             break;

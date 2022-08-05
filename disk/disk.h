@@ -4,6 +4,9 @@
 #include "../utils/list.h"
 #include "../process/process.h"
 
+#define DISK_BLOCK(track) ((track) * 521 + 8)
+#define INVERSE_DISK_BLOCK(block) (((block) - 8) / 521)
+
 /**
  * It represents an integer constant
  * holding the amount of track the

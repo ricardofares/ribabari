@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 
+#include "../utils/list.h"
+
 #define FETCH_INSTR_ADDR(x) ((x)->pc++)
 
 typedef enum ProcessState {
@@ -29,9 +31,19 @@ typedef struct Process {
     int remaining;
     process_state_t state;
 
+    /**
+     * It represents an array of open
+     * files by this process. This vector
+     * contains the inode's number from
+     * the active inodes by this process.
+     */
+    list_t* o_files;
+
     /* Resource Acquisition Information */
     char **semaphores;
 } process_t;
+
+/* Process Function Prototype */
 
 /**
  * It returns 1 if both process has the same id.
@@ -44,6 +56,7 @@ typedef struct Process {
  *         otherwise, 0 is returned.
  */
 int proc_cmp(void* p1, void *p2);
+
 
 /**
  * It creates the process read from the file
@@ -64,5 +77,21 @@ void process_create(const char* filepath);
  * @param proc the process to be finished
  */
 void process_finish(process_t* proc);
+
+/* Process File System Related Function Prototypes */
+
+/**
+ * It returns 1 if this process has already opened
+ * the inode with the specified inumber. Otherwise,
+ * 0 is returned.
+ *
+ * @param process the process to be checked
+ * @param inumber the inode number
+ *
+ * @return 1 if this process has already opened
+ *            the inode with the specified inumber.
+ *            Otherwise, 0 is returned.
+ */
+int has_opened_file(process_t* process, int inumber);
 
 #endif // OS_PROJECT_PROCESS_H

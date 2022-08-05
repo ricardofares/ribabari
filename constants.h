@@ -14,4 +14,8 @@
 
 #define OS_PROCESS_DEBUG 0
 
+/* File System Debug Options */
+
+#define OS_FS_DEBUG 1
+
 #endif // OS_PROJECT_CONSTANTS_H

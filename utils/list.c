@@ -52,6 +52,7 @@ list_t* list_init() {
 
     list->head = NULL;
     list->tail = NULL;
+    list->size = 0;
     return list;
 }
 
@@ -81,6 +82,7 @@ void list_add(list_t *list, void *content) {
     }
 
     list->tail = node;
+    list->size++;
 }
 
 /**
@@ -134,6 +136,7 @@ list_node_t *list_remove_head(list_t *list) {
         /* Detach the node from the list */
         temp->next = NULL;
         temp->prev = NULL;
+        list->size--;
     }
 
     return temp;
@@ -147,13 +150,21 @@ list_node_t *list_remove_head(list_t *list) {
  * @param node the node to be removed
  */
 void list_remove_node(list_t *list, list_node_t *node) {
-    if (node->prev)
+    if (node->prev) {
         node->prev->next = node->next;
-    else if (list->head == node) list->head = node->next;
+        list->size--;
+    } else if (list->head == node) {
+        list->head = node->next;
+        list->size--;
+    }
 
-    if (node->next)
+    if (node->next) {
         node->next->prev = node->prev;
-    else if (list->tail == node) list->tail = node->prev;
+        list->size--;
+    } else if (list->tail == node) {
+        list->tail = node->prev;
+        list->size--;
+    }
 }
 
 /**
@@ -176,6 +187,7 @@ list_node_t *list_remove_tail(list_t *list) {
         /* Detach the node from the list */
         temp->next = NULL;
         temp->prev = NULL;
+        list->size--;
     }
 
     return temp;
