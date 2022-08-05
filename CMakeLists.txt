@@ -26,4 +26,6 @@ add_executable(so_project
         semaphore/semaphore.h
         disk/disk.c
         disk/disk.h
-        io/print.c io/print.h)
+        terminal/terminal.h
+        terminal/terminal.c
+        )

@@ -54,9 +54,10 @@ _Noreturn void cpu() {
                 proc_log_info_t* new_proc_info
                     = malloc(sizeof(proc_log_info_t));
                 new_proc_info->is_proc = 0;
-                list_add(log_list, (void*)new_proc_info);
+                list_add(process_log_list, (void*)new_proc_info);
                 sem_post(&log_mutex);
-                refresh();
+                sem_post(&refresh_mutex);
+//                refresh();
                 no_process = 1;
             }
 
@@ -65,7 +66,7 @@ _Noreturn void cpu() {
         }
         /* There is some process running */
         else {
-	    char* proc_name = strdup(kernel->scheduler.scheduled_proc->name);
+            char* proc_name = strdup(kernel->scheduler.scheduled_proc->name);
             no_process = 0;
             do {
                 clock_gettime(CLOCK_REALTIME, &end);
@@ -88,8 +89,7 @@ _Noreturn void cpu() {
                         &kernel->seg_table,
                         kernel->scheduler.scheduled_proc->seg_id);
                     page_t* page = &seg->page_table[page_number];
-                    instr_t instr
-                        = page->code[page_offset];
+                    instr_t instr = page->code[page_offset];
 
                     /* It set the used bit if it is not set */
                     if (!page->used)
@@ -106,8 +106,9 @@ _Noreturn void cpu() {
                         .id = seg->id,
                         .is_proc = 1,
                     };
-                    list_add(log_list, (void*)new_proc_info);
+                    list_add(process_log_list, (void*)new_proc_info);
                     sem_post(&log_mutex);
+                    sem_post(&refresh_mutex);
 
                     /* Evaluate the current instruction to be executed by the
                      * process */
@@ -134,4 +135,3 @@ _Noreturn void cpu() {
         }
     }
 }
-

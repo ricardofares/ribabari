@@ -4,7 +4,9 @@ sint1
 4
 s t
 
-exec 1000
+exec 1
+exec 1
+exec 1
 read 20
 exec 400
 read 30

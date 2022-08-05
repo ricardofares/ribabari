@@ -8,7 +8,8 @@
 #define HOLD_MAIN_THREAD while(1);
 
 int main() {
-    log_list_init();
+    process_log_init();
+    disk_log_init();
 
     disk_init();
     cpu_init();

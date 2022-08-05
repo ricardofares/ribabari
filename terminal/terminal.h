@@ -9,12 +9,19 @@
 
 #define BOX_SIZE 2
 static const int EXIT = -1;
-extern list_t* log_list;
+static const long SECOND_IN_NS = 1000000000L;
+extern list_t* process_log_list;
+extern list_t* disk_log_list;
 extern sem_t log_mutex;
 extern sem_t mem_mutex;
+extern sem_t disk_mutex;
+extern sem_t refresh_mutex;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
+#define BOX_OFFSET 2
+#define TITLE_OFFSET 2
+
 
 typedef struct {
     int is_proc;
@@ -102,13 +109,16 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
 void print_with_window(char* string, char* title, int y, int x);
 
-void log_list_init();
+void process_log_init();
+void disk_log_init();
 
 void* refresh_process_log(void* process_log);
 void* refresh_memory_log(void* memory_log);
+void* refresh_disk_log(void* disk_log);
 
 log_window_t* init_process_log();
 log_window_t* init_memory_log();
+log_window_t* init_disk_log();
 
 #endif // OS_PROJECT_TERMINAL_H
 
