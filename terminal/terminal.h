@@ -15,7 +15,7 @@ extern list_t* disk_log_list;
 extern sem_t log_mutex;
 extern sem_t mem_mutex;
 extern sem_t disk_mutex;
-extern sem_t refresh_mutex;
+extern sem_t refresh_sem;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
@@ -31,6 +31,14 @@ typedef struct {
     int id;
     int pc;
 } proc_log_info_t;
+
+typedef struct {
+    char *proc_name;
+    int track;
+    int is_read;
+    int proc_id;
+} disk_log_info_t;
+
 
 typedef enum main_menu_choices {
     CREATE,
@@ -112,9 +120,9 @@ void print_with_window(char* string, char* title, int y, int x);
 void process_log_init();
 void disk_log_init();
 
-void* refresh_process_log(void* process_log);
-void* refresh_memory_log(void* memory_log);
-void* refresh_disk_log(void* disk_log);
+void* refresh_process_log(void*);
+void* refresh_memory_log(void*);
+void* refresh_disk_log(void*);
 
 log_window_t* init_process_log();
 log_window_t* init_memory_log();
