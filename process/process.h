@@ -1,6 +1,8 @@
 #ifndef OS_PROJECT_PROCESS_H
 #define OS_PROJECT_PROCESS_H
 
+#include <stdio.h>
+
 #define FETCH_INSTR_ADDR(x) ((x)->pc++)
 
 typedef enum ProcessState {
@@ -42,5 +44,25 @@ typedef struct Process {
  *         otherwise, 0 is returned.
  */
 int proc_cmp(void* p1, void *p2);
+
+/**
+ * It creates the process read from the file
+ * specified in the file path, and add this
+ * file to the process control block (PCB).
+ *
+ * @param filepath the file path containing
+ *                 the process specifications
+ */
+void process_create(const char* filepath);
+
+/**
+ * It finishes the specified process removing
+ * it from the PCB and from schedulable process
+ * queue. Further, the memory allocated for the
+ * process is freed.
+ *
+ * @param proc the process to be finished
+ */
+void process_finish(process_t* proc);
 
 #endif // OS_PROJECT_PROCESS_H
