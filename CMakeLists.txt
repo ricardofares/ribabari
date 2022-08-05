@@ -8,6 +8,7 @@ include_directories(utils)
 
 add_executable(so_project
         main.c
+        constants.h
         cpu/cpu.c
         cpu/cpu.h
         utils/list.c
