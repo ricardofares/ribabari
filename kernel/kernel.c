@@ -210,6 +210,7 @@ void sysCall(kernel_function_t func, void *arg) {
             /* It schedules a next process and put the current one into the blocked queue */
             schedule_process(&kernel->scheduler, IO_REQUESTED);
 
+            print_request(curr_proc, (int)arg);
             break;
         }
     }
@@ -238,6 +239,7 @@ void interruptControl(kernel_function_t func, void *arg) {
             else list_add(kernel->scheduler.low_queue->queue, proc);
             break;
         }
+        /* When the process comes back from an I/O request it is put at the low queue */
         case DISK_FINISH:
         case PRINT_FINISH: {
             schedule_unblock_process(&kernel->scheduler, (process_t *)arg, LOW_QUEUE);
@@ -294,11 +296,18 @@ void eval(process_t* proc, instr_t* instr) {
     }
     case WRITE: {
 #if OS_EVAL_DEBUG
-            printf("Process %s has requested a write operation at track %d.\n", proc->name, instr->value);
+        printf("Process %s has requested a write operation at track %d.\n", proc->name, instr->value);
 #endif // OS_EVAL_DEBUG
-            sysCall(DISK_WRITE_REQUEST, instr->value);
-            break;
-        }
+        sysCall(DISK_WRITE_REQUEST, instr->value);
+        break;
+    }
+    case PRINT: {
+#if OS_EVAL_DEBUG
+        printf("Process %s has requested a print operation for %d u.t.\n", proc->name, instr->value);
+#endif // OS_EVAL_DEBUG
+        sysCall(PRINT_REQUEST, instr->value);
+        break;
+    }
     }
 }
 
