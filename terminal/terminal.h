@@ -9,13 +9,15 @@
 
 #define BOX_SIZE 2
 static const int EXIT = -1;
-static const long SECOND_IN_NS = 1000000000L;
+static const long SECOND_IN_US = 1000000L;
 extern list_t* process_log_list;
 extern list_t* disk_log_list;
+extern list_t* io_log_list;
 extern sem_t log_mutex;
 extern sem_t mem_mutex;
 extern sem_t disk_mutex;
 extern sem_t refresh_sem;
+extern sem_t io_mutex;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
@@ -119,14 +121,48 @@ void print_with_window(char* string, char* title, int y, int x);
 
 void process_log_init();
 void disk_log_init();
+void io_log_init();
 
-void* refresh_process_log(void*);
-void* refresh_memory_log(void*);
-void* refresh_disk_log(void*);
+void* refresh_process_log(void* _);
+void* refresh_memory_log(void* _);
+void* refresh_disk_log(void* _);
+void* refresh_io_log(void* _);
 
+
+log_window_t* init_io_log();
 log_window_t* init_process_log();
 log_window_t* init_memory_log();
 log_window_t* init_disk_log();
+
+/* Internal Terminal Function Prototypes */
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid);
+
+/**
+ * It calculates the page in the segment that
+ * is in use by the process. The in use is in
+ * the meaning that the process is executing
+ * an instruction in that page currently.
+ *
+ * @param segment the segment
+ *
+ * @return the page index (a non-negative value);
+ *         otherwise, returns -1 indicating that
+ *         no page in that segment is being used.
+ */
+static int page_inuse_index(const segment_t* segment);
 
 #endif // OS_PROJECT_TERMINAL_H
 

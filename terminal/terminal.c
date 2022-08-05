@@ -11,50 +11,25 @@ sem_t log_mutex;
 sem_t mem_mutex;
 sem_t disk_mutex;
 sem_t refresh_sem;
+sem_t io_mutex;
 
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t refresh_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 list_t* process_log_list;
 list_t* disk_log_list;
+list_t* io_log_list;
 
 log_window_t* process_log;
 log_window_t* memory_log;
 log_window_t* disk_log;
+log_window_t* io_log;
 menu_window_t* menu_window;
 
-/* Internal Terminal Function Prototypes */
-
-/**
- * It returns a pointer to a process that has the
- * specified segment id. Otherwise, if there is not
- * exists such a process, then NULL is returned.
- *
- * @param sid the segment id
- *
- * @return a pointer to a process that has the
- *         specified segment id; otherwise, if
- *         there is not exists such a process,
- *         then NULL is returned.
- */
-static process_t* get_process_sid(const int sid);
-
-/**
- * It calculates the page in the segment that
- * is in use by the process. The in use is in
- * the meaning that the process is executing
- * an instruction in that page currently.
- *
- * @param segment the segment
- *
- * @return the page index (a non-negative value);
- *         otherwise, returns -1 indicating that
- *         no page in that segment is being used.
- */
-static int page_inuse_index(const segment_t* segment);
 
 void process_log_init() { process_log_list = list_init(); }
 void disk_log_init() { disk_log_list = list_init(); }
+void io_log_init() { io_log_list = list_init(); }
 
 void main_menu_functions(int x) {
     coordinates_t whatever = {
@@ -105,12 +80,17 @@ void* refresh_logs(void* _) {
         box(memory_log->main_window, 0, 0);
         wrefresh(memory_log->main_window);
 
+        wattrset(menu_window->title_win, COLOR_PAIR(3));
         box(menu_window->title_win, 0, 0);
         box(menu_window->main_win, 0, 0);
         wrefresh(menu_window->main_win);
+
+        box(io_log->title_window, 0, 0);
+        box(io_log->main_window, 0, 0);
+        wrefresh(io_log->main_window);
         pthread_mutex_unlock(&refresh_mutex);
 
-        sleep(1);
+        usleep(SECOND_IN_US / 10);
     }
 }
 #define SI(S, V) {S, V},
@@ -125,6 +105,7 @@ int begin_terminal() {
     pthread_t log_thread;
     pthread_t memory_thread;
     pthread_t disk_thread;
+    pthread_t io_thread;
 
     menu_choice_t choices[] = {MAIN_MENU(SI)};
     menu_t* main_menu = create_menu(ARRAY_SIZE(choices), choices, "Main Menu");
@@ -138,12 +119,13 @@ int begin_terminal() {
     disk_log = init_disk_log();
     pthread_create(&disk_thread, NULL, refresh_disk_log, NULL);
 
+    io_log = init_io_log();
+    pthread_create(&log_thread, NULL, refresh_io_log, NULL);
+
     start_menu_and_loop(main_menu, (void (*)(int))NULL);
     unpost_menu(main_menu->curses_menu);
-//    wclear(main_menu->menu_window->main_win);
-//    wrefresh(main_menu->menu_window->main_win);
-    delete_menu(main_menu);
 
+    delete_menu(main_menu);
     end_screen();
 
     return 0;
@@ -156,7 +138,8 @@ menu_t* create_menu(int choices_count,
     menu_t* menu = malloc(sizeof(menu_t));
     (*menu) = (menu_t) {
         .height = choices_count + 4,
-        .width = get_biggest_item(choices, choices_count, title) + 5,
+//        .width = get_biggest_item(choices, choices_count, title) + 5,
+        .width = COLS / 2,
         .choices_count = choices_count,
         .choices = choices,
         .title = title,
@@ -198,8 +181,8 @@ menu_window_t* init_menu_window(const menu_t* menu) {
     /* Create Boxes around windows */
     wattrset(title_win, COLOR_PAIR(3));
     wattrset(mainWin, COLOR_PAIR(3));
-//    box(title_win, 0, 0);
-//    box(mainWin, 0, 0);
+    box(title_win, 0, 0);
+    box(mainWin, 0, 0);
 
     int titleOffset = 3;
     WINDOW* choiceWin = derwin(mainWin, menu->height - titleOffset,
@@ -742,15 +725,6 @@ void* refresh_disk_log(void*) {
                 wattron(disk_log->text_window, COLOR_PAIR(3) | A_NORMAL);
                 wprintw(disk_log->text_window, "%s ", disk_info->proc_name);
 
-//                wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-//                wprintw(disk_log->text_window, "(");
-
-//                wattron(disk_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-//                wprintw(disk_log->text_window, "%d", disk_info->proc_id);
-
-//                wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-//                wprintw(disk_log->text_window, ")");
-
                 wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(disk_log->text_window, "is ");
 
@@ -773,5 +747,41 @@ void* refresh_disk_log(void*) {
         pthread_mutex_unlock(&print_mutex);
 
         i = disk_log_list->tail;
+    }
+}
+
+log_window_t* init_io_log() {
+    const int main_height = LINES / 2;
+    const int main_width = COLS / 2;
+
+    const int text_offset = BOX_OFFSET + TITLE_OFFSET;
+    WINDOW* main_window = newwin(main_height - 6, main_width, 6, 0);
+    WINDOW* text_window
+        = derwin(main_window, main_height - text_offset,
+                 main_width - (BOX_OFFSET + 1), BOX_OFFSET + 1, 1);
+    WINDOW* title_window = derwin(main_window, 3, main_width, 0, 0);
+
+    scrollok(text_window, 1);
+    wattrset(text_window, COLOR_PAIR(2));
+
+    const char title[] = "I/O View";
+    title_print(title_window, (main_width - (int)strlen(title)) / 2, title);
+
+    wattrset(main_window, COLOR_PAIR(3));
+    wattrset(title_window, COLOR_PAIR(3));
+
+    log_window_t* log_window = malloc(sizeof(log_window_t));
+    (*log_window) = (log_window_t) {
+        .main_window = main_window,
+        .text_window = text_window,
+        .title_window = title_window,
+    };
+
+    return log_window;
+}
+
+void* refresh_io_log(void* _) {
+    while (1) {
+        sem_wait(&io_mutex);
     }
 }
