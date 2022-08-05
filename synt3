@@ -5,6 +5,7 @@ sint3
 s t
 
 exec 1000
+print 10
 read 20
 exec 400
 read 30

@@ -2,6 +2,7 @@
 #define OS_PROJECT_PRINT_H
 
 #include "../process/process.h"
+#include "../terminal/terminal.h"
 
 /**
  * It requests a print operation.

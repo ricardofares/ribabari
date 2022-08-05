@@ -35,6 +35,12 @@ typedef struct {
 } proc_log_info_t;
 
 typedef struct {
+    char* proc_name;
+    int proc_id;
+    int duration;
+} io_log_info_t;
+
+typedef struct {
     char *proc_name;
     int track;
     int is_read;
