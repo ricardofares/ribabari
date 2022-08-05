@@ -11,6 +11,7 @@
 static const int EXIT = -1;
 extern list_t* log_list;
 extern sem_t log_mutex;
+extern sem_t mem_mutex;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10

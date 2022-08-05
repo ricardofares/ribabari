@@ -9,6 +9,22 @@ sem_t log_mutex;
 sem_t mem_mutex;
 list_t* log_list;
 
+/* Internal Terminal Function Prototypes */
+
+/**
+ * It calculates the page in the segment that
+ * is in use by the process. The in use is in
+ * the meaning that the process is executing
+ * an instruction in that page currently.
+ *
+ * @param segment the segment
+ *
+ * @return the page index (a non-negative value);
+ *         otherwise, returns -1 indicating that
+ *         no page in that segment is being used.
+ */
+static int page_inuse_index(const segment_t* segment);
+
 void log_list_init() { log_list = list_init(); }
 
 void main_menu_functions(int x) {
@@ -464,7 +480,7 @@ void* refresh_memory_log(void* mem_win) {
             wclear(memory_log->text_window);
 
             for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
-                segment_t* seg = ((segment_t*)i->content);
+                const segment_t* seg = ((segment_t*)i->content);
                 char* buffer = malloc(100);
 
                 wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
@@ -488,8 +504,10 @@ void* refresh_memory_log(void* mem_win) {
                 wattroff(memory_log->text_window, A_BOLD);
 
                 wattron(memory_log->text_window, COLOR_PAIR(2));
-                snprintf(buffer, 100, "%6d available, page %d in use\n",
-                         seg->page_qtd, seg->page_count);
+                const int p_inuse_index = page_inuse_index(seg);
+                if (p_inuse_index)
+                    snprintf(buffer, 100, "%6d available, page %d in use\n", seg->page_qtd, p_inuse_index + 1);
+                else snprintf(buffer, 100, "%6d available, no page is being used\n", seg->page_qtd);
                 wprintw(memory_log->text_window, "%s", buffer);
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
@@ -555,3 +573,25 @@ log_window_t* init_memory_log() {
     return log_window;
 }
 
+/* Internal Terminal Function Definitions */
+
+/**
+ * It calculates the page in the segment that
+ * is in use by the process. The in use is in
+ * the meaning that the process is executing
+ * an instruction in that page currently.
+ *
+ * @param segment the segment
+ *
+ * @return the page index (a non-negative value);
+ *         otherwise, returns -1 indicating that
+ *         no page in that segment is being used.
+ */
+static int page_inuse_index(const segment_t* segment) {
+    int i;
+
+    for (i = segment->page_count - 1; i >= 0; i--)
+        if (segment->page_table[i].used)
+            return i;
+    return -1;
+}
