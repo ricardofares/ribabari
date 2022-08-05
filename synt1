@@ -4,11 +4,9 @@ sint1
 4
 s t
 
-exec 1
-exec 1
-exec 1
 read 20
 exec 400
+print 100
 read 30
 exec 500
 P(s)

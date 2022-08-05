@@ -10,6 +10,7 @@
 int main() {
     process_log_init();
     disk_log_init();
+    io_log_init();
 
     disk_init();
     cpu_init();
