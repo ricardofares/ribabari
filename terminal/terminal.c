@@ -462,7 +462,7 @@ void print_with_window(char* string, char* title, int y, int x) {
     pthread_mutex_unlock(&refresh_mutex);
 }
 
-void* refresh_process_log(void*) {
+void* refresh_process_log(void* _) {
     sem_wait(&log_mutex);
     list_node_t* i = process_log_list->head;
 
@@ -514,7 +514,7 @@ void* refresh_process_log(void*) {
     }
 }
 
-void* refresh_memory_log(void*) {
+void* refresh_memory_log(void* _) {
     list_t* seg_list = kernel->seg_table.seg_list;
     while (1) {
         // Print Memory Remaining the title
@@ -707,7 +707,7 @@ log_window_t* init_disk_log() {
     return log_window;
 }
 
-void* refresh_disk_log(void*) {
+void* refresh_disk_log(void* _) {
     sem_wait(&disk_mutex);
     list_node_t* i = disk_log_list->head;
 
