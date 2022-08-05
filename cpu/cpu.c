@@ -56,7 +56,7 @@ _Noreturn void cpu() {
                 new_proc_info->is_proc = 0;
                 list_add(process_log_list, (void*)new_proc_info);
                 sem_post(&log_mutex);
-                sem_post(&refresh_mutex);
+                sem_post(&refresh_sem);
 //                refresh();
                 no_process = 1;
             }
@@ -108,7 +108,7 @@ _Noreturn void cpu() {
                     };
                     list_add(process_log_list, (void*)new_proc_info);
                     sem_post(&log_mutex);
-                    sem_post(&refresh_mutex);
+                    sem_post(&refresh_sem);
 
                     /* Evaluate the current instruction to be executed by the
                      * process */
