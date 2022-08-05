@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#define MAX(a, b) ((a) >= (b) ? (a) : (b))
+
 sem_t log_mutex;
 sem_t mem_mutex;
 sem_t disk_mutex;
@@ -18,6 +20,20 @@ log_window_t* memory_log;
 log_window_t* disk_log;
 
 /* Internal Terminal Function Prototypes */
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid);
 
 /**
  * It calculates the page in the segment that
@@ -436,61 +452,61 @@ void* refresh_process_log(void* log_win) {
     sem_wait(&log_mutex);
     list_node_t* i = process_log_list->head;
 
-//    struct timespec start;
-//    struct timespec end;
+    //    struct timespec start;
+    //    struct timespec end;
 
-//    clock_gettime(CLOCK_REALTIME, &start);
+    //    clock_gettime(CLOCK_REALTIME, &start);
     while (1) {
-//        clock_gettime(CLOCK_REALTIME, &end);
-//        const long elapsed = (end.tv_sec - start.tv_sec) * SECOND_IN_NS
-//                            + (end.tv_nsec - start.tv_nsec);
+        //        clock_gettime(CLOCK_REALTIME, &end);
+        //        const long elapsed = (end.tv_sec - start.tv_sec) *
+        //        SECOND_IN_NS
+        //                            + (end.tv_nsec - start.tv_nsec);
 
-//        if (elapsed >= SECOND_IN_NS) {
-//            start = end;
+        //        if (elapsed >= SECOND_IN_NS) {
+        //            start = end;
 
-            sem_wait(&log_mutex);
-            i = i->next;
-            for (; i != NULL; i = i->next) {
-                proc_log_info_t* log_info = ((proc_log_info_t*)i->content);
-                if (!log_info->is_proc) {
-                    wprintw(process_log->text_window, "No process running.\n");
-                    break;
-                }
-
-                wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(process_log->text_window, "PROCESS: ");
-                wattroff(process_log->text_window, A_BOLD);
-
-                wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%10s, ", log_info->name);
-
-                wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(process_log->text_window, "REMAINING: ");
-                wattroff(process_log->text_window, A_BOLD);
-
-                wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%4dms, ",
-                        log_info->remaining);
-
-                wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(process_log->text_window, "PC: ");
-                wattroff(process_log->text_window, A_BOLD);
-
-                wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%4d, ", log_info->pc);
-
-                wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(process_log->text_window, "ID: ");
-                wattroff(process_log->text_window, A_BOLD);
-
-                wattron(process_log->text_window, COLOR_PAIR(3));
-                wprintw(process_log->text_window, "%2d.\n", log_info->id);
+        sem_wait(&log_mutex);
+        i = i->next;
+        for (; i != NULL; i = i->next) {
+            proc_log_info_t* log_info = ((proc_log_info_t*)i->content);
+            if (!log_info->is_proc) {
+                wprintw(process_log->text_window, "No process running.\n");
+                break;
             }
 
-            i = process_log_list->tail;
-            sem_post(&mem_mutex);
-            sem_post(&disk_mutex);
-//        }
+            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_log->text_window, "PROCESS: ");
+            wattroff(process_log->text_window, A_BOLD);
+
+            wattron(process_log->text_window, COLOR_PAIR(3));
+            wprintw(process_log->text_window, "%10s, ", log_info->name);
+
+            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_log->text_window, "REMAINING: ");
+            wattroff(process_log->text_window, A_BOLD);
+
+            wattron(process_log->text_window, COLOR_PAIR(3));
+            wprintw(process_log->text_window, "%4dms, ", log_info->remaining);
+
+            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_log->text_window, "PC: ");
+            wattroff(process_log->text_window, A_BOLD);
+
+            wattron(process_log->text_window, COLOR_PAIR(3));
+            wprintw(process_log->text_window, "%4d, ", log_info->pc);
+
+            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_log->text_window, "ID: ");
+            wattroff(process_log->text_window, A_BOLD);
+
+            wattron(process_log->text_window, COLOR_PAIR(3));
+            wprintw(process_log->text_window, "%2d.\n", log_info->id);
+        }
+
+        i = process_log_list->tail;
+        sem_post(&mem_mutex);
+        sem_post(&disk_mutex);
+        //        }
     }
 }
 
@@ -499,7 +515,7 @@ void* refresh_memory_log(void* mem_win) {
 
     list_t* seg_list = kernel->seg_table.seg_list;
     while (1) {
-        // Print Memory Remaining a the title
+        // Print Memory Remaining the title
         wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
         mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
                   kernel->seg_table.remaining);
@@ -540,7 +556,7 @@ void* refresh_memory_log(void* mem_win) {
                          seg->page_qtd);
             else
                 snprintf(buffer, 100, "%6d available, page %d in use\n",
-                         seg->page_qtd, p_inuse_index + 1);
+                         seg->page_qtd, p_inuse_index);
             wprintw(memory_log->text_window, "%s", buffer);
 
             wattroff(memory_log->text_window, COLOR_PAIR(2));
@@ -622,8 +638,38 @@ static int page_inuse_index(const segment_t* segment) {
 
     for (i = segment->page_count - 1; i >= 0; i--)
         if (segment->page_table[i].used)
-            return i;
+            goto page_in_use;
     return -1;
+page_in_use: {
+        const process_t* proc = get_process_sid(segment->id);
+        return MAX(1, proc->pc / (double) proc->code_len * segment->page_qtd);
+    };
+}
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid) {
+    const list_t* proc_table = kernel->proc_table;
+    list_node_t* curr_node;
+
+    for (curr_node = proc_table->head; curr_node != NULL;
+         curr_node = curr_node->next) {
+        process_t* proc = (process_t *)curr_node->content;
+        if (proc->seg_id == sid)
+            return proc;
+    }
+
+    return NULL;
 }
 
 log_window_t* init_disk_log() {
