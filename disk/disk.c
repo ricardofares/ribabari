@@ -6,6 +6,7 @@
 #ifndef OS_SCHED_KERNEL
 #define OS_SCHED_KERNEL
 #include "../kernel/kernel.h"
+#include "../terminal/terminal.h"
 #endif // OS_SCHED_KERNEL
 
 #define MILLISECONDS_100 (100000000L)
@@ -50,11 +51,13 @@ _Noreturn void disk() {
             if (kernel->disk_scheduler.forward_dir) {
                 if (kernel->disk_scheduler.curr_track == DISK_TRACK_LIMIT)
                     kernel->disk_scheduler.forward_dir = 0;
-                else kernel->disk_scheduler.curr_track++;
+                else
+                    kernel->disk_scheduler.curr_track++;
             } else {
                 if (kernel->disk_scheduler.curr_track == 0)
                     kernel->disk_scheduler.forward_dir = 1;
-                else kernel->disk_scheduler.curr_track--;
+                else
+                    kernel->disk_scheduler.curr_track--;
             }
         }
     }
@@ -67,7 +70,7 @@ _Noreturn void disk() {
  *                       scheduler that will be
  *                       initialized.
  */
-void disk_scheduler_init(disk_scheduler_t *disk_scheduler) {
+void disk_scheduler_init(disk_scheduler_t* disk_scheduler) {
     disk_scheduler->pending_requests = list_init();
     disk_scheduler->forward_dir = 1;
     disk_scheduler->curr_track = 0;
@@ -85,20 +88,40 @@ void disk_scheduler_init(disk_scheduler_t *disk_scheduler) {
  *             is a read operation; otherwise, it indicates
  *             a write operation.
  */
-void disk_request(process_t* process, disk_scheduler_t *disk_scheduler, int track, int read) {
+void disk_request(process_t* process, disk_scheduler_t* disk_scheduler,
+                  int track, int read) {
+    disk_log_info_t* new_disk_log
+        = (disk_log_info_t*)malloc(sizeof(disk_log_info_t));
+
+
+    char* proc_name = strdup(process->name);
+    (*new_disk_log) = (disk_log_info_t) {
+        .proc_name = proc_name,
+        .is_read = read,
+        .track = track,
+        .proc_id = process->id,
+    };
+
+    list_add(disk_log_list, new_disk_log);
+    sem_post(&disk_mutex);
+
     int time = DISK_OPERATION_TIME;
 
     /* It is going from the inner track to the outer one */
     if (disk_scheduler->forward_dir) {
         if (track >= disk_scheduler->curr_track)
             time += (track - disk_scheduler->curr_track) * DISK_TRACK_MOVE_TIME;
-        else time += ((DISK_TRACK_LIMIT - disk_scheduler->curr_track) + (DISK_TRACK_LIMIT - track)) * DISK_TRACK_MOVE_TIME;
+        else
+            time += ((DISK_TRACK_LIMIT - disk_scheduler->curr_track)
+                     + (DISK_TRACK_LIMIT - track))
+                    * DISK_TRACK_MOVE_TIME;
     }
     /* It is going from the outer track to the inner one */
     else {
         if (track < disk_scheduler->curr_track)
             time += (disk_scheduler->curr_track - track) * DISK_TRACK_MOVE_TIME;
-        else time += (disk_scheduler->curr_track + track) * DISK_TRACK_MOVE_TIME;
+        else
+            time += (disk_scheduler->curr_track + track) * DISK_TRACK_MOVE_TIME;
     }
 
     process->remaining -= time;
