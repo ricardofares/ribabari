@@ -9,6 +9,8 @@ sem_t log_mutex;
 sem_t mem_mutex;
 list_t* log_list;
 
+#define MAX(a, b) ((a) >= (b) ? (a) : (b))
+
 /* Internal Terminal Function Prototypes */
 
 /**
@@ -24,6 +26,20 @@ list_t* log_list;
  *         no page in that segment is being used.
  */
 static int page_inuse_index(const segment_t* segment);
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid);
 
 void log_list_init() { log_list = list_init(); }
 
@@ -507,7 +523,7 @@ void* refresh_memory_log(void* mem_win) {
                 const int p_inuse_index = page_inuse_index(seg);
                 if (p_inuse_index == -1)
                     snprintf(buffer, 100, "%6d available, no page is being used\n", seg->page_qtd);
-                else snprintf(buffer, 100, "%6d available, page %d in use\n", seg->page_qtd, p_inuse_index + 1);
+                else snprintf(buffer, 100, "%6d available, page %d in use\n", seg->page_qtd, p_inuse_index);
                 wprintw(memory_log->text_window, "%s", buffer);
 
                 wattroff(memory_log->text_window, COLOR_PAIR(2));
@@ -592,6 +608,37 @@ static int page_inuse_index(const segment_t* segment) {
 
     for (i = segment->page_count - 1; i >= 0; i--)
         if (segment->page_table[i].used)
-            return i;
+            goto page_in_use;
+
     return -1;
+page_in_use: {
+    const process_t* proc = get_process_sid(segment->id);
+    return MAX(1, proc->pc / (double) proc->code_len * segment->page_qtd);
+};
+}
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid) {
+    const list_t* proc_table = kernel->proc_table;
+    list_node_t* curr_node;
+
+    for (curr_node = proc_table->head; curr_node != NULL;
+        curr_node = curr_node->next) {
+        process_t* proc = (process_t *)curr_node->content;
+        if (proc->seg_id == sid)
+            return proc;
+    }
+
+    return NULL;
 }
