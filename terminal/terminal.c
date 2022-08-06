@@ -821,27 +821,50 @@ void* refresh_io_log(void* _) {
     while (1) {
         pthread_mutex_lock(&print_mutex);
         for (; i != NULL; i = i->next) {
-            io_log_info_t * io_info = ((io_log_info_t*)i->content);
+            io_log_info_t* io_info = ((io_log_info_t*)i->content);
 
-            wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(io_log->text_window, "Process ");
+            /* It indicates that the current log is a printing log */
+            if (io_info->p_log) {
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, "Process ");
 
-            wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(io_log->text_window, "%s ", io_info->proc_name);
+                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_log->text_window, "%s ", io_info->proc_name);
 
-            wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(io_log->text_window, "is printing for ");
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, "is printing for ");
 
-            wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(io_log->text_window, "%d ", io_info->duration);
+                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_log->text_window, "%d ", io_info->value.duration);
 
-            wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(io_log->text_window, "u.t.\n");
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, "u.t.\n");
+            }
+            /* It indicates that the current log is a file system */
+            /* handling a disk read/write operation content */
+            else {
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, "Process ");
+
+                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_log->text_window, "%s ", io_info->proc_name);
+
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, "is %s the file with inode ", io_info->read ? "reading" : "writing");
+
+                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_log->text_window, "%d", io_info->value.duration);
+
+                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_log->text_window, ".\n");
+            }
         }
         pthread_mutex_unlock(&print_mutex);
 
         i = io_log_list->tail;
 
         sem_wait(&io_mutex);
+
+        i = i->next;
     }
 }
