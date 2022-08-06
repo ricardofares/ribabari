@@ -105,6 +105,7 @@ _Noreturn void cpu() {
                         .pc = pc,
                         .id = seg->id,
                         .is_proc = 1,
+                        .f_op_count = kernel->scheduler.scheduled_proc->o_files->size
                     };
                     list_add(process_log_list, (void*)new_proc_info);
                     sem_post(&log_mutex);

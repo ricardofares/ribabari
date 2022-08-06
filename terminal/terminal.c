@@ -479,7 +479,14 @@ _Noreturn void* refresh_process_log() {
             wattroff(process_window->text_window, A_BOLD);
 
             wattron(process_window->text_window, COLOR_PAIR(3));
-            wprintw(process_window->text_window, "%2d.\n", log_info->id);
+            wprintw(process_window->text_window, "%2d, ", log_info->id);
+
+            wattron(process_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_window->text_window, "FILES: ");
+            wattroff(process_window->text_window, A_BOLD);
+
+            wattron(process_window->text_window, COLOR_PAIR(3));
+            wprintw(process_window->text_window, "%2d.\n", log_info->f_op_count);
         }
 
         pthread_mutex_unlock(&print_mutex);
@@ -713,7 +720,7 @@ void refresh_disk_title_window() {
             disk_general_log->forward_dir ? "F" : "B");
     int disk_velocity_size
         = sprintf(disk_velocity, "AngV: %d rpm", disk_general_log->angular_v);
-    sprintf(disk_track, "Track: %d ", disk_general_log->curr_track);
+    sprintf(disk_track, "Track: %d Requests: %d", disk_general_log->curr_track, disk_general_log->pending_requests_size);
     int disk_qtd_size
         = sprintf(disk_quantity, "R: %d    W: %d",
                   disk_general_log->r_req_count, disk_general_log->w_req_count);
@@ -754,13 +761,13 @@ _Noreturn void* refresh_disk_log() {
             wprintw(disk_window->text_window, "%s ", disk_info->proc_name);
 
             wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, "is ");
+            wprintw(disk_window->text_window, "has ");
 
             wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
             if (disk_info->is_read) {
-                wprintw(disk_window->text_window, "reading ");
+                wprintw(disk_window->text_window, "read ");
             } else {
-                wprintw(disk_window->text_window, "writing ");
+                wprintw(disk_window->text_window, "written ");
             }
 
             wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
@@ -770,7 +777,10 @@ _Noreturn void* refresh_disk_log() {
             wprintw(disk_window->text_window, "%d", disk_info->track);
 
             wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, ".\n");
+            wprintw(disk_window->text_window, " with a turnaround of ");
+
+            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(disk_window->text_window, "%du.t.\n", disk_info->turnaround);
         }
         pthread_mutex_unlock(&print_mutex);
 
@@ -821,40 +831,63 @@ _Noreturn void* refresh_io_log() {
             io_log_info_t* io_info = ((io_log_info_t*)i->content);
 
             /* It indicates that the current log is a printing log */
-            if (io_info->p_log) {
+            if (io_info->type == IO_LOG_PRINT) {
+                io_log_print_t* io_log_print = io_info->print_log;
+
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, "Process ");
 
                 wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_window->text_window, "%s ", io_info->proc_name);
+                wprintw(io_window->text_window, "%s ", io_log_print->proc_name);
 
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, "is printing for ");
 
                 wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_window->text_window, "%d ", io_info->value.duration);
+                wprintw(io_window->text_window, "%d ", io_log_print->duration);
 
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, "u.t.\n");
             }
             /* It indicates that the current log is a file system */
             /* handling a disk read/write operation content */
-            else {
+            else if (io_info->type == IO_LOG_FILE_SYSTEM) {
+                io_log_fs_t* io_log_fs = io_info->fs_log;
+
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, "Process ");
 
                 wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_window->text_window, "%s ", io_info->proc_name);
+                wprintw(io_window->text_window, "%s ", io_log_fs->proc_name);
 
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_window->text_window, "is %s the file with inode ",
-                        io_info->read ? "reading" : "writing");
+                wprintw(io_window->text_window, "has %s the file with inode ",
+                        io_log_fs->read ? "read" : "written");
 
                 wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_window->text_window, "%d", io_info->value.duration);
+                wprintw(io_window->text_window, "%d", io_log_fs->inumber);
 
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, ".\n");
+            }
+            /* It indicates that the current log is a disk request */
+            else if (io_info->type == IO_LOG_DISK_REQUEST) {
+                io_log_disk_req_t* io_log_disk_req = io_info->disk_req_log;
+
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "Process ");
+
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%s ", io_log_disk_req->proc_name);
+
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "has requested a ");
+
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%s", io_log_disk_req->read ? "read" : "write");
+
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, " operation.\n");
             }
         }
         pthread_mutex_unlock(&print_mutex);

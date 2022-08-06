@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../utils/math.h"
+#include "sched.h"
+
 #define SCHED_HIGH_QUEUE_QUANTUM (1000)
 #define SCHED_LOW_QUEUE_QUANTUM (2000)
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-#include "sched.h"
 
 /* Scheduler Internal Function Prototypes */
 
@@ -55,11 +54,11 @@ void schedule_process(scheduler_t* scheduler, scheduler_flag_t flags) {
     if (!list_empty(scheduler->high_queue->queue)) {
         new_scheduled = (process_t *)list_remove_head(scheduler->high_queue->queue)->content;
         if (new_scheduled)
-            new_scheduled->remaining += scheduler->high_queue->quantum;
+            new_scheduled->remaining = MAX(1000, MIN(SCHED_HIGH_QUEUE_QUANTUM, new_scheduled->remaining + scheduler->high_queue->quantum));
     } else if (!list_empty(scheduler->low_queue->queue)) {
         new_scheduled = (process_t *)list_remove_head(scheduler->low_queue->queue)->content;
         if (new_scheduled)
-            new_scheduled->remaining += scheduler->low_queue->quantum;
+            new_scheduled->remaining = MAX(0, MIN(SCHED_LOW_QUEUE_QUANTUM, new_scheduled->remaining + scheduler->low_queue->quantum));
     }
 
     /* It checks if there was a process in the CPU */

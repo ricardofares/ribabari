@@ -50,6 +50,40 @@ typedef struct DiskScheduler {
     int angular_v;
 } disk_scheduler_t;
 
+typedef struct DiskRequest {
+    /**
+     * It stores the process in which
+     * has requested a disk operation.
+     */
+    process_t* process;
+
+    /**
+     * It holds the track in which
+     * the process has requested the
+     * disk operation.
+     */
+    int track;
+
+    /**
+     * It indicates that this request
+     * is a read operation since this
+     * value is 1. Otherwise, if this
+     * value is 0, then it indicates
+     * a write operation.
+     */
+    int read;
+
+    /**
+     * It stores the amount of time
+     * that the disk will take to
+     * complete the read/write
+     * operation.
+     */
+    int turnaround;
+} disk_request_t;
+
+/* Disk Function Prototypes */
+
 /**
  * It creates the DiskScheduler-Thread that
  * is going to run the Hard Disk function
@@ -68,6 +102,8 @@ void disk_init();
  */
 _Noreturn void disk();
 
+/* Disk Scheduler Function Prototypes */
+
 /**
  * It initializes the disk scheduler.
  *
@@ -76,6 +112,21 @@ _Noreturn void disk();
  *                       initialized.
  */
 void disk_scheduler_init(disk_scheduler_t *disk_scheduler);
+
+/* Disk Operation Function Prototypes */
+
+/**
+ * It returns a pointer to a disk request.
+ * If there is not enough memory to allocate
+ * the disk request, then the application is
+ * exited.
+ *
+ * @return a pointer to a disk request, however,
+ *         if there is not enough memory to allocate
+ *         the disk request, then the application is
+ *         exited.
+ */
+disk_request_t* create_disk_request();
 
 /**
  * It requests a read/write operation from the

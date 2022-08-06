@@ -1,9 +1,8 @@
 #include <stdio.h>
 
 #include "../constants.h"
+#include "../utils/math.h"
 #include "kernel.h"
-
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 /* Internal Function Prototypes */
 

@@ -57,6 +57,12 @@ typedef struct DiskLog {
      * It stores the angular velocity.
      */
     int angular_v;
+
+    /**
+     * It stores the amount of pending
+     * disk read/write operations requests.
+     */
+    int pending_requests_size;
 } disk_log_t;
 
 extern disk_log_t* disk_general_log;
@@ -68,45 +74,64 @@ typedef struct {
     int remaining;
     int id;
     int pc;
+
+    /**
+     * It stores the amount of open
+     * files being used by this process.
+     */
+    int f_op_count;
 } proc_log_info_t;
+
+typedef enum IoLogType {
+    IO_LOG_PRINT,
+    IO_LOG_FILE_SYSTEM,
+    IO_LOG_DISK_REQUEST
+} io_log_type_t;
+
+typedef struct IoLogPrint {
+    char* proc_name;
+    int duration;
+} io_log_print_t;
+
+typedef struct IoLogFileSystem {
+    char* proc_name;
+    int inumber;
+    int read;
+} io_log_fs_t;
+
+typedef struct IoLogDiskRequest {
+    char* proc_name;
+    int read;
+} io_log_disk_req_t;
 
 typedef struct {
     /**
-     * It indicates that this I/O log
-     * is a printing log information
-     * since this value is 1. Otherwise,
-     * it indicates that this log is
-     * a file system handling a read/write
-     * disk operation.
+     * It stores the log type.
      */
-    int p_log;
+    io_log_type_t type;
 
     /**
-     * It stores the process name in which
-     * is printing for a specified duration.
+     * It stores a pointer to a print
+     * log. This value is not null since
+     * the log type is IO_LOG_PRINT.
      */
-    char* proc_name;
+    io_log_print_t* print_log;
 
     /**
-     * It stores the process id.
+     * It stores a pointer to a file
+     * system log. This value is not
+     * null since the log type is
+     * IO_LOG_FILE_SYSTEM.
      */
-    int proc_id;
+    io_log_fs_t* fs_log;
 
     /**
-     * It stores the duration in which the
-     * process is printing since the p_log
-     * value is equal to 1.
-     *
-     * However, if the value of p_log is
-     * equal to 0, then this value represents
-     * the inode number.
+     * It stores a pointer to a disk
+     * request log. This value is not
+     * null since the log type is
+     * IO_LOG_DISK_REQUEST.
      */
-    union {
-        int duration;
-        int inumber;
-    } value;
-
-    int read;
+    io_log_disk_req_t* disk_req_log;
 } io_log_info_t;
 
 typedef struct {
@@ -114,6 +139,7 @@ typedef struct {
     int track;
     int is_read;
     int proc_id;
+    int turnaround;
 } disk_log_info_t;
 
 typedef enum main_menu_choices {

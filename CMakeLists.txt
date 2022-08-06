@@ -33,4 +33,5 @@ add_executable(so_project
         print/print.h
         file/file.c
         file/file.h
+        utils/math.h
         )

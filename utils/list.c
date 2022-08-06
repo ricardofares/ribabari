@@ -150,21 +150,15 @@ list_node_t *list_remove_head(list_t *list) {
  * @param node the node to be removed
  */
 void list_remove_node(list_t *list, list_node_t *node) {
-    if (node->prev) {
+    if (node->prev)
         node->prev->next = node->next;
-        list->size--;
-    } else if (list->head == node) {
-        list->head = node->next;
-        list->size--;
-    }
+    else if (list->head == node) list->head = node->next;
 
-    if (node->next) {
+    if (node->next)
         node->next->prev = node->prev;
-        list->size--;
-    } else if (list->tail == node) {
-        list->tail = node->prev;
-        list->size--;
-    }
+    else if (list->tail == node) list->tail = node->prev;
+
+    list->size--;
 }
 
 /**
