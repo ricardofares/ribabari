@@ -96,18 +96,20 @@ void* refresh_logs(void* _) {
         box(memory_log->title_window, 0, 0);
         box(memory_log->main_window, 0, 0);
         wrefresh(memory_log->main_window);
+        wrefresh(memory_log->title_window);
 
         wattrset(menu_window->title_win, COLOR_PAIR(3));
         box(menu_window->title_win, 0, 0);
         box(menu_window->main_win, 0, 0);
         wrefresh(menu_window->main_win);
 
+        refresh_disk_title_window();
         box(io_log->title_window, 0, 0);
         box(io_log->main_window, 0, 0);
         wrefresh(io_log->main_window);
         pthread_mutex_unlock(&refresh_mutex);
 
-        usleep(SECOND_IN_US / 10);
+        usleep(SECOND_IN_US / 100);
     }
 }
 #define SI(S, V) {S, V},
@@ -137,7 +139,7 @@ int begin_terminal() {
     pthread_create(&disk_thread, NULL, refresh_disk_log, NULL);
 
     io_log = init_io_log();
-    pthread_create(&log_thread, NULL, refresh_io_log, NULL);
+    pthread_create(&io_thread, NULL, refresh_io_log, NULL);
 
     start_menu_and_loop(main_menu, (void (*)(int))NULL);
     unpost_menu(main_menu->curses_menu);
@@ -535,22 +537,36 @@ void* refresh_process_log(void* _) {
     }
 }
 
+void refresh_memory_title_window() {
+    // Print Memory Remaining the title
+
+    wclear(memory_log->title_window);
+    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
+              kernel->seg_table.remaining);
+    mvwprintw(memory_log->title_window, 1, (COLS / 2) - 17, "Use: %.1lf%%/100%%",
+              (1073741824 - kernel->seg_table.remaining) * 100.0 / 1073741824.0);
+    wattron(memory_log->title_window, COLOR_PAIR(3));
+
+    const char title[] = "Disk View";
+
+    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(memory_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2, title);
+    //    title_print(memory_log->title_window, (COLS - (int)strlen(title)) / 2, title);
+    wattron(memory_log->title_window, COLOR_PAIR(3) | A_BOLD);
+}
+
 void* refresh_memory_log(void* _) {
     list_t* seg_list = kernel->seg_table.seg_list;
     while (1) {
-        // Print Memory Remaining the title
-        wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
-        mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
-                  kernel->seg_table.remaining);
-        mvwprintw(memory_log->title_window, 1, (COLS / 2) - 17, "Use: %.1lf%%/100%%",
-                  (1073741824 - kernel->seg_table.remaining) * 100.0 / 1073741824.0);
-        wattron(memory_log->title_window, COLOR_PAIR(3));
 
         sem_wait(&mem_mutex);
         wmove(memory_log->text_window, 0, 0);
         wclear(memory_log->text_window);
 
         pthread_mutex_lock(&print_mutex);
+
+        refresh_memory_title_window();
         for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
             const segment_t* seg = ((segment_t*)i->content);
             char* buffer = malloc(100);
@@ -590,6 +606,7 @@ void* refresh_memory_log(void* _) {
         pthread_mutex_unlock(&print_mutex);
     }
 }
+
 
 log_window_t* init_process_log() {
     const int main_height = LINES / 2;
@@ -730,23 +747,33 @@ log_window_t* init_disk_log() {
     return log_window;
 }
 
+void refresh_disk_title_window() {
+    pthread_mutex_lock(&print_mutex);
+    const char * buffer = (char *)malloc(sizeof(char) * 40);
+    sprintf(buffer, "DIR: %s    R: %d    W: %d",
+            disk_general_log->forward_dir ? "FORWARD" : "BACKWARD",
+            disk_general_log->r_req_count,
+            disk_general_log->w_req_count);
+
+    const char title[] = "Disk View";
+    wclear(disk_log->title_window);
+
+    wattron(disk_log->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(disk_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2, title);
+    mvwprintw(disk_log->title_window, 1, COLS / 2 - strlen(buffer) - 2, buffer);
+//    title_print(disk_log->title_window, (COLS - (int)strlen(title)) / 2, title);
+    wattron(disk_log->title_window, COLOR_PAIR(3) | A_BOLD);
+    free(buffer);
+    pthread_mutex_unlock(&print_mutex);
+}
+
 void* refresh_disk_log(void* _) {
     sem_wait(&disk_mutex);
     list_node_t* i = disk_log_list->head;
 
     while (1) {
-
-        char* buffer = (char *)malloc(sizeof(char) * 100);
         pthread_mutex_lock(&print_mutex);
-        sprintf(buffer, "DIR: %s    R: %d    W: %d",
-                disk_general_log->forward_dir ? "FORWARD" : "BACKWARD",
-                disk_general_log->r_req_count,
-                disk_general_log->w_req_count);
-
-        wattron(disk_log->title_window, COLOR_PAIR(1) | A_BOLD);
-        mvwprintw(disk_log->title_window, 1, (COLS / 2) - strlen(buffer) - 2, buffer);
-        wattron(disk_log->title_window, COLOR_PAIR(3) | A_BOLD);
-        free(buffer);
+        refresh_disk_title_window();
         for (; i != NULL; i = i->next) {
             disk_log_info_t* disk_info = ((disk_log_info_t*)i->content);
 

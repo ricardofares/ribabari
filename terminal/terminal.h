@@ -163,6 +163,8 @@ log_window_t* init_process_log();
 log_window_t* init_memory_log();
 log_window_t* init_disk_log();
 
+void refresh_disk_title_window();
+
 /* Internal Terminal Function Prototypes */
 
 /**
