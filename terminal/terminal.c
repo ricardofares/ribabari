@@ -31,7 +31,7 @@ menu_window_t* menu_window;
 void process_log_init() { process_log_list = list_init(); }
 
 void disk_log_init() {
-    disk_general_log = (disk_log_t *)malloc(sizeof(disk_log_t));
+    disk_general_log = (disk_log_t*)malloc(sizeof(disk_log_t));
 
     /* It check if the disk log could not be allocated */
     if (!disk_general_log) {
@@ -93,6 +93,9 @@ void* refresh_logs(void* _) {
         box(process_log->main_window, 0, 0);
         wrefresh(process_log->main_window);
 
+        pthread_mutex_lock(&print_mutex);
+        refresh_memory_title_window();
+        pthread_mutex_unlock(&print_mutex);
         box(memory_log->title_window, 0, 0);
         box(memory_log->main_window, 0, 0);
         wrefresh(memory_log->main_window);
@@ -103,13 +106,15 @@ void* refresh_logs(void* _) {
         box(menu_window->main_win, 0, 0);
         wrefresh(menu_window->main_win);
 
+        pthread_mutex_lock(&print_mutex);
         refresh_disk_title_window();
+        pthread_mutex_unlock(&print_mutex);
         box(io_log->title_window, 0, 0);
         box(io_log->main_window, 0, 0);
         wrefresh(io_log->main_window);
         pthread_mutex_unlock(&refresh_mutex);
 
-        usleep(SECOND_IN_US / 100);
+        usleep(SECOND_IN_US / 10);
     }
 }
 #define SI(S, V) {S, V},
@@ -540,19 +545,26 @@ void* refresh_process_log(void* _) {
 void refresh_memory_title_window() {
     // Print Memory Remaining the title
 
+    char* usage_buffer = malloc(16);
+    int usage_buffer_size = sprintf(usage_buffer, "Use: %.1lf%%/100%%",
+                                    (ONE_GIGABIT - kernel->seg_table.remaining)
+                                        * 100.0 / ONE_GIGABIT);
+
     wclear(memory_log->title_window);
     wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
     mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
               kernel->seg_table.remaining);
-    mvwprintw(memory_log->title_window, 1, (COLS / 2) - 17, "Use: %.1lf%%/100%%",
-              (1073741824 - kernel->seg_table.remaining) * 100.0 / 1073741824.0);
+    mvwprintw(memory_log->title_window, 1, (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2),
+              usage_buffer);
     wattron(memory_log->title_window, COLOR_PAIR(3));
 
-    const char title[] = "Disk View";
+    const char title[] = "Memory View";
 
     wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2, title);
-    //    title_print(memory_log->title_window, (COLS - (int)strlen(title)) / 2, title);
+    mvwprintw(memory_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2,
+              title);
+    //    title_print(memory_log->title_window, (COLS - (int)strlen(title)) / 2,
+    //    title);
     wattron(memory_log->title_window, COLOR_PAIR(3) | A_BOLD);
 }
 
@@ -566,7 +578,6 @@ void* refresh_memory_log(void* _) {
 
         pthread_mutex_lock(&print_mutex);
 
-        refresh_memory_title_window();
         for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
             const segment_t* seg = ((segment_t*)i->content);
             char* buffer = malloc(100);
@@ -606,7 +617,6 @@ void* refresh_memory_log(void* _) {
         pthread_mutex_unlock(&print_mutex);
     }
 }
-
 
 log_window_t* init_process_log() {
     const int main_height = LINES / 2;
@@ -748,23 +758,34 @@ log_window_t* init_disk_log() {
 }
 
 void refresh_disk_title_window() {
-    pthread_mutex_lock(&print_mutex);
-    const char * buffer = (char *)malloc(sizeof(char) * 40);
-    sprintf(buffer, "DIR: %s    R: %d    W: %d",
-            disk_general_log->forward_dir ? "FORWARD" : "BACKWARD",
-            disk_general_log->r_req_count,
-            disk_general_log->w_req_count);
+    //    pthread_mutex_lock(&print_mutex);
+    char* disk_direction = (char*)malloc(sizeof(char) * 16);
+    char* disk_track = (char*)malloc(sizeof(char) * 16);
+    char* disk_velocity = (char*)malloc(sizeof(char) * 16);
+    char* disk_quantity = (char*)malloc(sizeof(char) * 16);
+    sprintf(disk_direction, "DIR: %s ",
+            disk_general_log->forward_dir ? "FORWARD" : "BACKWARD");
+    sprintf(disk_velocity, "AngV: %d RPM", disk_general_log->angular_v);
+    sprintf(disk_track, "Track: %d ", disk_general_log->curr_track);
+    int disk_qtd_size
+        = sprintf(disk_quantity, "R: %d    W: %d",
+                  disk_general_log->r_req_count, disk_general_log->w_req_count);
 
     const char title[] = "Disk View";
     wclear(disk_log->title_window);
 
     wattron(disk_log->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(disk_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2, title);
-    mvwprintw(disk_log->title_window, 1, COLS / 2 - strlen(buffer) - 2, buffer);
-//    title_print(disk_log->title_window, (COLS - (int)strlen(title)) / 2, title);
+    wmove(disk_log->title_window, 1, 1);
+    wprintw(disk_log->title_window, "%s", disk_direction);
+    wprintw(disk_log->title_window, "%s", disk_track);
+    wprintw(disk_log->title_window, "%s", disk_velocity);
+    mvwprintw(disk_log->title_window, 1, (COLS / 2) - disk_qtd_size - 1, "%s",
+              disk_quantity);
+    title_print(disk_log->title_window, (COLS / 2 - (int)strlen(title)) / 2,
+                title);
     wattron(disk_log->title_window, COLOR_PAIR(3) | A_BOLD);
-    free(buffer);
-    pthread_mutex_unlock(&print_mutex);
+    free(disk_direction);
+    //    pthread_mutex_unlock(&print_mutex);
 }
 
 void* refresh_disk_log(void* _) {
@@ -848,7 +869,7 @@ void* refresh_io_log(void* _) {
     while (1) {
         pthread_mutex_lock(&print_mutex);
         for (; i != NULL; i = i->next) {
-            io_log_info_t * io_info = ((io_log_info_t*)i->content);
+            io_log_info_t* io_info = ((io_log_info_t*)i->content);
 
             wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
             wprintw(io_log->text_window, "Process ");
@@ -870,5 +891,6 @@ void* refresh_io_log(void* _) {
         i = io_log_list->tail;
 
         sem_wait(&io_mutex);
+        i
     }
 }
