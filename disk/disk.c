@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <time.h>
+#include <math.h>
 
 #include "disk.h"
 
@@ -60,8 +61,13 @@ _Noreturn void disk() {
                     kernel->disk_scheduler.curr_track--;
             }
 
+            /* It updates some miscellaneous information */
+            kernel->disk_scheduler.angular_v = (int) (DISk_BASE_ANGULAR_V + 100 * sin(kernel->disk_scheduler.curr_track));
+
             /* It updates the disk forward direction log */
             disk_general_log->forward_dir = kernel->disk_scheduler.forward_dir;
+            disk_general_log->curr_track = kernel->disk_scheduler.curr_track;
+            disk_general_log->angular_v = kernel->disk_scheduler.angular_v;
         }
     }
 }

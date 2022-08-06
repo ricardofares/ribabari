@@ -46,6 +46,17 @@ typedef struct DiskLog {
      * the outer one or vice-versa.
      */
     int forward_dir;
+
+    /**
+     * It stores the current track
+     * in which the disk arm is on.
+     */
+    int curr_track;
+
+    /**
+     * It stores the angular velocity.
+     */
+    int angular_v;
 } disk_log_t;
 
 extern disk_log_t* disk_general_log;
