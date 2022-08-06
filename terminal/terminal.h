@@ -124,10 +124,6 @@ typedef struct menu_window_t {
     WINDOW* main_win;
     WINDOW* title_win;
     WINDOW* items_win;
-    int height;
-    int width;
-    int begin_y;
-    int begin_x;
 } menu_window_t;
 
 typedef struct menu_choice_t {
@@ -168,27 +164,21 @@ typedef struct {
     M("Exit", EXIT)
 
 #define ONE_GIGABIT 1073741824
-void print_item_index(menu_t* menu, const ITEM* item);
 void menu_loop(menu_t* main_menu, void (*func)(int));
 
 void init_screen();
 void end_screen(void);
 
-void start_menu_and_loop(menu_t* menu, void (*func)(int));
-void print_welcome();
-MENU* make_curses_menu(menu_t* menu);
+void start_menu_and_loop(menu_t* menu);
 menu_t* create_menu(int choices_count,
                     menu_choice_t choices[static choices_count],
                     const char* title);
-const char* get_string_from_type(menu_t* menu, int type);
 int get_type_from_string(menu_t* menu, const char* buffer);
-int get_biggest_item(menu_choice_t choices[], int choice_count,
-                     const char* title);
 
 menu_window_t* init_menu_window(const menu_t* menu);
 int begin_terminal();
 void delete_menu(menu_t* menu);
-void free_menu_window(menu_window_t* menu_window);
+void free_menu_window(menu_window_t* window);
 
 char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
@@ -198,10 +188,11 @@ void process_log_init();
 void disk_log_init();
 void io_log_init();
 
-void* refresh_process_log(void* _);
-void* refresh_memory_log(void* _);
-void* refresh_disk_log(void* _);
-void* refresh_io_log(void* _);
+_Noreturn void* refresh_process_log();
+_Noreturn void* refresh_memory_log();
+_Noreturn void* refresh_disk_log();
+_Noreturn void* refresh_io_log();
+_Noreturn void* refresh_logs();
 
 log_window_t* init_io_log();
 log_window_t* init_process_log();
@@ -225,7 +216,7 @@ void refresh_memory_title_window();
  *         there is not exists such a process,
  *         then NULL is returned.
  */
-static process_t* get_process_sid(const int sid);
+static process_t* get_process_sid(int sid);
 
 /**
  * It calculates the page in the segment that

@@ -22,10 +22,10 @@ list_t* io_log_list;
 
 disk_log_t* disk_general_log;
 
-log_window_t* process_log;
-log_window_t* memory_log;
-log_window_t* disk_log;
-log_window_t* io_log;
+log_window_t* process_window;
+log_window_t* memory_window;
+log_window_t* disk_window;
+log_window_t* io_window;
 menu_window_t* menu_window;
 
 void process_log_init() { process_log_list = list_init(); }
@@ -33,7 +33,7 @@ void process_log_init() { process_log_list = list_init(); }
 void disk_log_init() {
     disk_general_log = (disk_log_t*)malloc(sizeof(disk_log_t));
 
-    /* It check if the disk log could not be allocated */
+    /* It checks if the disk log could not be allocated */
     if (!disk_general_log) {
         printf("Not enough memory to allocate the disk log.\n");
         exit(EXIT_FAILURE);
@@ -54,20 +54,18 @@ void main_menu_functions(int x) {
         .begin_y = -1,
     };
     char* input;
-    switch (x) {
-        case CREATE:
-            input = get_input_from_window("What is the name of the file?",
-                                          whatever, 40);
-            if (access(input, F_OK)) {
-                print_with_window(
-                    "The file could not be executed or it does not exist.",
-                    "WARNING.", -1, -1);
-                return;
-            }
-            sysCall(PROCESS_CREATE, (void*)input);
-            break;
-        default:
-            break;
+    if (x == CREATE) {
+        input = get_input_from_window("What is the name of the file?", whatever,
+                                      40);
+        if (access(input, F_OK)) {
+            print_with_window(
+                "The file could not be executed or it does not exist.",
+                "WARNING.", -1, -1);
+            return;
+        }
+
+        sysCall(PROCESS_CREATE, (void*)input);
+        free(input);
     }
 }
 
@@ -79,27 +77,24 @@ void end_screen(void) {
     endwin();
 }
 
-void* refresh_logs(void* _) {
+_Noreturn void* refresh_logs() {
     while (1) {
         //        sem_wait(&refresh_sem);
         pthread_mutex_lock(&refresh_mutex);
 
         refresh();
-        box(disk_log->title_window, 0, 0);
-        box(disk_log->main_window, 0, 0);
-        wrefresh(disk_log->main_window);
+        box(disk_window->title_window, 0, 0);
+        box(disk_window->main_window, 0, 0);
+        wrefresh(disk_window->main_window);
 
-        box(process_log->title_window, 0, 0);
-        box(process_log->main_window, 0, 0);
-        wrefresh(process_log->main_window);
+        box(process_window->title_window, 0, 0);
+        box(process_window->main_window, 0, 0);
+        wrefresh(process_window->main_window);
 
-        pthread_mutex_lock(&print_mutex);
-        refresh_memory_title_window();
-        pthread_mutex_unlock(&print_mutex);
-        box(memory_log->title_window, 0, 0);
-        box(memory_log->main_window, 0, 0);
-        wrefresh(memory_log->main_window);
-        wrefresh(memory_log->title_window);
+        box(memory_window->title_window, 0, 0);
+        box(memory_window->main_window, 0, 0);
+        wrefresh(memory_window->main_window);
+        wrefresh(memory_window->title_window);
 
         wattrset(menu_window->title_win, COLOR_PAIR(3));
         box(menu_window->title_win, 0, 0);
@@ -109,12 +104,12 @@ void* refresh_logs(void* _) {
         pthread_mutex_lock(&print_mutex);
         refresh_disk_title_window();
         pthread_mutex_unlock(&print_mutex);
-        box(io_log->title_window, 0, 0);
-        box(io_log->main_window, 0, 0);
-        wrefresh(io_log->main_window);
+        box(io_window->title_window, 0, 0);
+        box(io_window->main_window, 0, 0);
+        wrefresh(io_window->main_window);
         pthread_mutex_unlock(&refresh_mutex);
 
-        usleep(SECOND_IN_US / 10);
+        usleep(SECOND_IN_US / 6);
     }
 }
 #define SI(S, V) {S, V},
@@ -134,19 +129,19 @@ int begin_terminal() {
     menu_choice_t choices[] = {MAIN_MENU(SI)};
     menu_t* main_menu = create_menu(ARRAY_SIZE(choices), choices, "Main Menu");
 
-    process_log = init_process_log();
+    process_window = init_process_log();
     pthread_create(&log_thread, NULL, refresh_process_log, NULL);
 
-    memory_log = init_memory_log();
+    memory_window = init_memory_log();
     pthread_create(&memory_thread, NULL, refresh_memory_log, NULL);
 
-    disk_log = init_disk_log();
+    disk_window = init_disk_log();
     pthread_create(&disk_thread, NULL, refresh_disk_log, NULL);
 
-    io_log = init_io_log();
+    io_window = init_io_log();
     pthread_create(&io_thread, NULL, refresh_io_log, NULL);
 
-    start_menu_and_loop(main_menu, (void (*)(int))NULL);
+    start_menu_and_loop(main_menu);
     unpost_menu(main_menu->curses_menu);
 
     delete_menu(main_menu);
@@ -198,40 +193,37 @@ void title_print(WINDOW* title_win, int win_width, const char* title) {
 }
 
 menu_window_t* init_menu_window(const menu_t* menu) {
-    WINDOW* mainWin = newwin(menu->height, menu->width, 0, 0);
+    WINDOW* main_win = newwin(menu->height, menu->width, 0, 0);
 
-    const int titleHeight = 3;
-    WINDOW* title_win = derwin(mainWin, titleHeight, menu->width, 0, 0);
+    const int title_height = 3;
+    WINDOW* title_win = derwin(main_win, title_height, menu->width, 0, 0);
 
     /* Create Boxes around windows */
     wattrset(title_win, COLOR_PAIR(3));
-    wattrset(mainWin, COLOR_PAIR(3));
+    wattrset(main_win, COLOR_PAIR(3));
     box(title_win, 0, 0);
-    box(mainWin, 0, 0);
+    box(main_win, 0, 0);
 
-    int titleOffset = 3;
-    WINDOW* choiceWin = derwin(mainWin, menu->height - titleOffset,
-                               menu->width - BOX_SIZE, titleOffset, BOX_SIZE);
-
-    const int titleMiddleY = 1;
+    int title_offset = 3;
+    WINDOW* choice_win = derwin(main_win, menu->height - title_offset,
+                                menu->width - BOX_SIZE, title_offset, BOX_SIZE);
 
     // Print title with colors and bold
-    title_print(title_win, (menu->width - strlen(menu->title)) / 2,
+    title_print(title_win, (menu->width - (int)strlen(menu->title)) / 2,
                 menu->title);
 
-    menu_window_t* newMenuWindow
+    menu_window_t* new_menu_window
         = (menu_window_t*)malloc(sizeof(menu_window_t));
-    (*newMenuWindow) = (menu_window_t) {
-        .main_win = mainWin,
+    (*new_menu_window) = (menu_window_t) {
+        .main_win = main_win,
         .title_win = title_win,
-        .items_win = choiceWin,
-        .height = menu->height,
-        .width = menu->width,
-        .begin_y = (LINES - menu->height) / 2,
-        .begin_x = (COLS - menu->width) / 2,
+        .items_win = choice_win,
     };
 
-    return newMenuWindow;
+    // For using the UP/DOWN key
+    keypad(new_menu_window->main_win, TRUE);
+
+    return new_menu_window;
 }
 
 void init_screen() {
@@ -253,18 +245,6 @@ void init_screen() {
 
     // BORDER COLOR PAIR
     init_pair(4, COLOR_MAGENTA, COLOR_BLACK);
-}
-
-void print_item_index(menu_t* menu, const ITEM* item) {
-    int y_local = menu->menu_window->begin_y + menu->menu_window->height;
-    int x_local = menu->menu_window->begin_x;
-    int win_size = menu->menu_window->width;
-    move(x_local, 0);
-    clrtoeol();
-
-    char buffer[30];
-    int buffer_size = sprintf(buffer, "Item %d was chosen.", item_index(item));
-    mvprintw(y_local, x_local + (win_size - buffer_size) / 2, "%s", buffer);
 }
 
 void menu_loop(menu_t* menu, void (*func)(int)) {
@@ -301,11 +281,10 @@ void menu_loop(menu_t* menu, void (*func)(int)) {
             default:
                 break;
         }
-        c = 0;
     }
 }
 
-void start_menu_and_loop(menu_t* menu, void (*func)(int)) {
+void start_menu_and_loop(menu_t* menu) {
     MENU* curses_menu = menu->curses_menu;
     //    menu_window_t* menu_window = menu->menu_window;
     refresh();
@@ -321,13 +300,6 @@ void start_menu_and_loop(menu_t* menu, void (*func)(int)) {
     menu_loop(menu, main_menu_functions);
 }
 
-void print_welcome() {
-    attron(COLOR_PAIR(2) | A_BOLD);
-    mvprintw(LINES - 3, 1, "Press <ENTER> to see the option selected");
-    mvprintw(LINES - 2, 1, "\"j\" to go down and \"k\" to go up.");
-    attroff(COLOR_PAIR(2) | A_BOLD);
-}
-
 int get_type_from_string(menu_t* menu, const char* buffer) {
     for (int i = 0; i < menu->choices_count; i++) {
         if (!strcmp(menu->choices[i].text, buffer)) {
@@ -336,29 +308,6 @@ int get_type_from_string(menu_t* menu, const char* buffer) {
     }
 
     return -1;
-}
-
-const char* get_string_from_type(menu_t* menu, int type) {
-    static const char* NO_MATCH = "";
-    for (int i = 0; i < menu->choices_count; i++) {
-        if (menu->choices[i].value == type) {
-            return menu->choices[i].text;
-        }
-    }
-    return NO_MATCH;
-}
-
-int get_biggest_item(menu_choice_t choices[], int choice_count,
-                     const char* title) {
-    int max = strlen(title);
-    for (int i = 0; i < choice_count; i++) {
-        int item_len = strlen(choices[i].text);
-        if (item_len > max) {
-            max = item_len;
-        }
-    }
-
-    return max;
 }
 
 void delete_menu(menu_t* menu) {
@@ -373,10 +322,10 @@ void delete_menu(menu_t* menu) {
     free(menu);
 }
 
-void free_menu_window(menu_window_t* menu_window) {
-    delwin(menu_window->items_win);
-    delwin(menu_window->title_win);
-    delwin(menu_window->main_win);
+void free_menu_window(menu_window_t* window) {
+    delwin(window->items_win);
+    delwin(window->title_win);
+    delwin(window->main_win);
 }
 
 void input_refresh(io_window_t* input_win) {
@@ -403,8 +352,6 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
     io_window_t io_win;
     echo();
 
-    const int title_len = strlen(title);
-
     if (coordinates.begin_y < 0) {
         coordinates.begin_y = LINES / 2 - 1;
         coordinates.begin_x = (COLS - buffer_size + BOX_SIZE) / 2;
@@ -417,7 +364,7 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
                                  buffer_size + BOX_SIZE, 0, 0);
 
     title_print(io_win.title_window,
-                (buffer_size + BOX_SIZE - strlen(title)) / 2, title);
+                (buffer_size + BOX_SIZE - (int)strlen(title)) / 2, title);
 
     wattrset(io_win.title_window, COLOR_PAIR(3));
     wattrset(io_win.main_window, COLOR_PAIR(3));
@@ -445,8 +392,8 @@ void print_with_window(char* string, char* title, int y, int x) {
 
     io_window_t io_win;
 
-    int string_len = strlen(string);
-    int title_len = strlen(title);
+    int string_len = (int)strlen(string);
+    int title_len = (int)strlen(title);
 
     int window_width;
     if (string_len > title_len) {
@@ -466,7 +413,6 @@ void print_with_window(char* string, char* title, int y, int x) {
     int window_height = 5;
     io_win.main_window = newwin(window_height, window_width, y, x);
 
-    int title_height = 3;
     io_win.title_window = derwin(io_win.main_window, 3, window_width, 0, 0);
     io_win.text_window = derwin(io_win.main_window, 1, window_width - 2, 3, 1);
 
@@ -490,7 +436,7 @@ void print_with_window(char* string, char* title, int y, int x) {
     pthread_mutex_unlock(&refresh_mutex);
 }
 
-void* refresh_process_log(void* _) {
+_Noreturn void* refresh_process_log() {
     sem_wait(&log_mutex);
     list_node_t* i = process_log_list->head;
 
@@ -502,37 +448,38 @@ void* refresh_process_log(void* _) {
         for (; i != NULL; i = i->next) {
             proc_log_info_t* log_info = ((proc_log_info_t*)i->content);
             if (!log_info->is_proc) {
-                wprintw(process_log->text_window, "No process running.\n");
+                wprintw(process_window->text_window, "No process running.\n");
                 break;
             }
 
-            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(process_log->text_window, "PROCESS: ");
-            wattroff(process_log->text_window, A_BOLD);
+            wattron(process_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_window->text_window, "PROCESS: ");
+            wattroff(process_window->text_window, A_BOLD);
 
-            wattron(process_log->text_window, COLOR_PAIR(3));
-            wprintw(process_log->text_window, "%10s, ", log_info->name);
+            wattron(process_window->text_window, COLOR_PAIR(3));
+            wprintw(process_window->text_window, "%10s, ", log_info->name);
 
-            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(process_log->text_window, "REMAINING: ");
-            wattroff(process_log->text_window, A_BOLD);
+            wattron(process_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_window->text_window, "REMAINING: ");
+            wattroff(process_window->text_window, A_BOLD);
 
-            wattron(process_log->text_window, COLOR_PAIR(3));
-            wprintw(process_log->text_window, "%4dms, ", log_info->remaining);
+            wattron(process_window->text_window, COLOR_PAIR(3));
+            wprintw(process_window->text_window, "%4dms, ",
+                    log_info->remaining);
 
-            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(process_log->text_window, "PC: ");
-            wattroff(process_log->text_window, A_BOLD);
+            wattron(process_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_window->text_window, "PC: ");
+            wattroff(process_window->text_window, A_BOLD);
 
-            wattron(process_log->text_window, COLOR_PAIR(3));
-            wprintw(process_log->text_window, "%4d, ", log_info->pc);
+            wattron(process_window->text_window, COLOR_PAIR(3));
+            wprintw(process_window->text_window, "%4d, ", log_info->pc);
 
-            wattron(process_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(process_log->text_window, "ID: ");
-            wattroff(process_log->text_window, A_BOLD);
+            wattron(process_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(process_window->text_window, "ID: ");
+            wattroff(process_window->text_window, A_BOLD);
 
-            wattron(process_log->text_window, COLOR_PAIR(3));
-            wprintw(process_log->text_window, "%2d.\n", log_info->id);
+            wattron(process_window->text_window, COLOR_PAIR(3));
+            wprintw(process_window->text_window, "%2d.\n", log_info->id);
         }
 
         pthread_mutex_unlock(&print_mutex);
@@ -550,31 +497,29 @@ void refresh_memory_title_window() {
                                     (ONE_GIGABIT - kernel->seg_table.remaining)
                                         * 100.0 / ONE_GIGABIT);
 
-    wclear(memory_log->title_window);
-    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
-              kernel->seg_table.remaining);
-    mvwprintw(memory_log->title_window, 1, (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2),
-              usage_buffer);
-    wattron(memory_log->title_window, COLOR_PAIR(3));
+    wclear(memory_window->title_window);
+    wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(memory_window->title_window, 1, 1, "Remaining %4dkb",
+              kernel->seg_table.remaining / 1024);
+    mvwprintw(memory_window->title_window, 1,
+              (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2), "%s", usage_buffer);
+    wattron(memory_window->title_window, COLOR_PAIR(3));
 
     const char title[] = "Memory View";
 
-    wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_log->title_window, 1, (COLS / 2 - (int)strlen(title)) / 2,
-              title);
-    //    title_print(memory_log->title_window, (COLS - (int)strlen(title)) / 2,
-    //    title);
-    wattron(memory_log->title_window, COLOR_PAIR(3) | A_BOLD);
+    wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(memory_window->title_window, 1,
+              (COLS / 2 - (int)strlen(title)) / 2, title);
+    wattron(memory_window->title_window, COLOR_PAIR(3) | A_BOLD);
 }
 
-void* refresh_memory_log(void* _) {
+_Noreturn void* refresh_memory_log() {
     list_t* seg_list = kernel->seg_table.seg_list;
     while (1) {
 
         sem_wait(&mem_mutex);
-        wmove(memory_log->text_window, 0, 0);
-        wclear(memory_log->text_window);
+        wmove(memory_window->text_window, 0, 0);
+        wclear(memory_window->text_window);
 
         pthread_mutex_lock(&print_mutex);
 
@@ -582,37 +527,38 @@ void* refresh_memory_log(void* _) {
             const segment_t* seg = ((segment_t*)i->content);
             char* buffer = malloc(100);
 
-            wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_log->text_window, "ID: ");
-            wattroff(memory_log->text_window, A_BOLD);
+            wattron(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(memory_window->text_window, "ID: ");
+            wattroff(memory_window->text_window, A_BOLD);
 
-            wattron(memory_log->text_window, COLOR_PAIR(3));
+            wattron(memory_window->text_window, COLOR_PAIR(3));
             snprintf(buffer, 100, "%2d, ", seg->id);
-            wprintw(memory_log->text_window, "%s", buffer);
+            wprintw(memory_window->text_window, "%s", buffer);
 
-            wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_log->text_window, "Segment Size: ");
-            wattroff(memory_log->text_window, A_BOLD);
+            wattron(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(memory_window->text_window, "SegSize: ");
+            wattroff(memory_window->text_window, A_BOLD);
 
-            wattron(memory_log->text_window, COLOR_PAIR(3));
-            snprintf(buffer, 100, "%10d bytes, ", seg->size);
-            wprintw(memory_log->text_window, "%s", buffer);
+            wattron(memory_window->text_window, COLOR_PAIR(3));
+            snprintf(buffer, 100, "%7d kb, ", seg->size / 1024);
+            wprintw(memory_window->text_window, "%s", buffer);
 
-            wattron(memory_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_log->text_window, "Pages count: ");
-            wattroff(memory_log->text_window, A_BOLD);
+            wattron(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(memory_window->text_window, "Pages: ");
+            wattroff(memory_window->text_window, A_BOLD);
 
-            wattron(memory_log->text_window, COLOR_PAIR(3));
+            wattron(memory_window->text_window, COLOR_PAIR(3));
             const int p_inuse_index = page_inuse_index(seg);
             if (p_inuse_index == -1)
-                snprintf(buffer, 100, "%6d available, no page is being used\n",
-                         seg->page_qtd);
+                snprintf(buffer, 100, "%d available.\n", seg->page_qtd);
             else
-                snprintf(buffer, 100, "%6d available, page %d in use\n",
-                         seg->page_qtd, p_inuse_index);
-            wprintw(memory_log->text_window, "%s", buffer);
+                snprintf(buffer, 100, "using %d of %d.\n", p_inuse_index,
+                         seg->page_qtd);
+            wprintw(memory_window->text_window, "%s", buffer);
 
-            wattroff(memory_log->text_window, COLOR_PAIR(2));
+            wattroff(memory_window->text_window, COLOR_PAIR(2));
+
+            refresh_memory_title_window();
         }
         pthread_mutex_unlock(&print_mutex);
     }
@@ -698,7 +644,7 @@ page_in_use:
     {
         const process_t* proc = get_process_sid(segment->id);
         return MAX(1, proc->pc / (double)proc->code_len * segment->page_qtd);
-    };
+    }
 }
 
 /**
@@ -764,31 +710,34 @@ void refresh_disk_title_window() {
     char* disk_velocity = (char*)malloc(sizeof(char) * 16);
     char* disk_quantity = (char*)malloc(sizeof(char) * 16);
     sprintf(disk_direction, "DIR: %s ",
-            disk_general_log->forward_dir ? "FORWARD" : "BACKWARD");
-    sprintf(disk_velocity, "AngV: %d RPM", disk_general_log->angular_v);
+            disk_general_log->forward_dir ? "F" : "B");
+    int disk_velocity_size
+        = sprintf(disk_velocity, "AngV: %d rpm", disk_general_log->angular_v);
     sprintf(disk_track, "Track: %d ", disk_general_log->curr_track);
     int disk_qtd_size
         = sprintf(disk_quantity, "R: %d    W: %d",
                   disk_general_log->r_req_count, disk_general_log->w_req_count);
 
     const char title[] = "Disk View";
-    wclear(disk_log->title_window);
+    wclear(disk_window->title_window);
 
-    wattron(disk_log->title_window, COLOR_PAIR(1) | A_BOLD);
-    wmove(disk_log->title_window, 1, 1);
-    wprintw(disk_log->title_window, "%s", disk_direction);
-    wprintw(disk_log->title_window, "%s", disk_track);
-    wprintw(disk_log->title_window, "%s", disk_velocity);
-    mvwprintw(disk_log->title_window, 1, (COLS / 2) - disk_qtd_size - 1, "%s",
-              disk_quantity);
-    title_print(disk_log->title_window, (COLS / 2 - (int)strlen(title)) / 2,
+    wattron(disk_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    wmove(disk_window->title_window, 1, 1);
+    wprintw(disk_window->title_window, "%s", disk_direction);
+    wprintw(disk_window->title_window, "%s", disk_track);
+    mvwprintw(disk_window->title_window, 1, (COLS / 2) - disk_qtd_size - 1,
+              "%s", disk_quantity);
+    mvwprintw(disk_window->title_window, 1,
+              (COLS / 2) - disk_qtd_size - 2 - disk_velocity_size, "%s",
+              disk_velocity);
+    title_print(disk_window->title_window, (COLS / 2 - (int)strlen(title)) / 2,
                 title);
-    wattron(disk_log->title_window, COLOR_PAIR(3) | A_BOLD);
+    wattron(disk_window->title_window, COLOR_PAIR(3) | A_BOLD);
     free(disk_direction);
     //    pthread_mutex_unlock(&print_mutex);
 }
 
-void* refresh_disk_log(void* _) {
+_Noreturn void* refresh_disk_log() {
     sem_wait(&disk_mutex);
     list_node_t* i = disk_log_list->head;
 
@@ -798,30 +747,30 @@ void* refresh_disk_log(void* _) {
         for (; i != NULL; i = i->next) {
             disk_log_info_t* disk_info = ((disk_log_info_t*)i->content);
 
-            wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_log->text_window, "Process ");
+            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(disk_window->text_window, "Process ");
 
-            wattron(disk_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(disk_log->text_window, "%s ", disk_info->proc_name);
+            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(disk_window->text_window, "%s ", disk_info->proc_name);
 
-            wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_log->text_window, "is ");
+            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(disk_window->text_window, "is ");
 
-            wattron(disk_log->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
             if (disk_info->is_read) {
-                wprintw(disk_log->text_window, "reading ");
+                wprintw(disk_window->text_window, "reading ");
             } else {
-                wprintw(disk_log->text_window, "writing ");
+                wprintw(disk_window->text_window, "writing ");
             }
 
-            wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_log->text_window, "on track ");
+            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(disk_window->text_window, "on track ");
 
-            wattron(disk_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(disk_log->text_window, "%d", disk_info->track);
+            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(disk_window->text_window, "%d", disk_info->track);
 
-            wattron(disk_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_log->text_window, ".\n");
+            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(disk_window->text_window, ".\n");
         }
         pthread_mutex_unlock(&print_mutex);
 
@@ -862,7 +811,7 @@ log_window_t* init_io_log() {
     return log_window;
 }
 
-void* refresh_io_log(void* _) {
+_Noreturn void* refresh_io_log() {
     sem_wait(&io_mutex);
     list_node_t* i = io_log_list->head;
 
@@ -873,38 +822,39 @@ void* refresh_io_log(void* _) {
 
             /* It indicates that the current log is a printing log */
             if (io_info->p_log) {
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, "Process ");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "Process ");
 
-                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_log->text_window, "%s ", io_info->proc_name);
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%s ", io_info->proc_name);
 
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, "is printing for ");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "is printing for ");
 
-                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_log->text_window, "%d ", io_info->value.duration);
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%d ", io_info->value.duration);
 
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, "u.t.\n");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "u.t.\n");
             }
             /* It indicates that the current log is a file system */
             /* handling a disk read/write operation content */
             else {
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, "Process ");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "Process ");
 
-                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_log->text_window, "%s ", io_info->proc_name);
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%s ", io_info->proc_name);
 
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, "is %s the file with inode ", io_info->read ? "reading" : "writing");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "is %s the file with inode ",
+                        io_info->read ? "reading" : "writing");
 
-                wattron(io_log->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(io_log->text_window, "%d", io_info->value.duration);
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(io_window->text_window, "%d", io_info->value.duration);
 
-                wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_log->text_window, ".\n");
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, ".\n");
             }
         }
         pthread_mutex_unlock(&print_mutex);
