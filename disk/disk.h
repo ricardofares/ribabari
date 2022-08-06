@@ -8,6 +8,13 @@
 #define INVERSE_DISK_BLOCK(block) (((block) - 8) / 521)
 
 /**
+ * It represents the disk base
+ * angular velocity measured in
+ * rpm (rotations per minute).
+ */
+#define DISk_BASE_ANGULAR_V (7200)
+
+/**
  * It represents an integer constant
  * holding the amount of track the
  * hard disk contains.
@@ -36,6 +43,11 @@ typedef struct DiskScheduler {
      * which the arm is on to.
      */
     int curr_track;
+
+    /**
+     * It stores the disk angular velocity.
+     */
+    int angular_v;
 } disk_scheduler_t;
 
 /**
