@@ -7,23 +7,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#define ENTER_KEY 10
+#define BOX_OFFSET 2
+#define TITLE_OFFSET 2
+
 #define BOX_SIZE 2
+
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
+
 extern list_t* process_log_list;
 extern list_t* disk_log_list;
 extern list_t* io_log_list;
+
 extern sem_t log_mutex;
 extern sem_t mem_mutex;
 extern sem_t disk_mutex;
 extern sem_t refresh_sem;
 extern sem_t io_mutex;
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#define ENTER_KEY 10
-#define BOX_OFFSET 2
-#define TITLE_OFFSET 2
+typedef struct DiskLog {
+    /**
+     * It stores the amount of
+     * disk read operation requests.
+     */
+    int r_req_count;
 
+    /**
+     * It stores the amount of
+     * disk write operation requests.
+     */
+    int w_req_count;
+
+    /**
+     * It stores if the disk arm is
+     * going from the inner track to
+     * the outer one or vice-versa.
+     */
+    int forward_dir;
+} disk_log_t;
+
+extern disk_log_t* disk_general_log;
 
 typedef struct {
     int is_proc;
@@ -46,7 +71,6 @@ typedef struct {
     int is_read;
     int proc_id;
 } disk_log_info_t;
-
 
 typedef enum main_menu_choices {
     CREATE,
@@ -133,7 +157,6 @@ void* refresh_process_log(void* _);
 void* refresh_memory_log(void* _);
 void* refresh_disk_log(void* _);
 void* refresh_io_log(void* _);
-
 
 log_window_t* init_io_log();
 log_window_t* init_process_log();

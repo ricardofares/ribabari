@@ -59,6 +59,9 @@ _Noreturn void disk() {
                 else
                     kernel->disk_scheduler.curr_track--;
             }
+
+            /* It updates the disk forward direction log */
+            disk_general_log->forward_dir = kernel->disk_scheduler.forward_dir;
         }
     }
 }
@@ -101,6 +104,10 @@ void disk_request(process_t* process, disk_scheduler_t* disk_scheduler,
         .track = track,
         .proc_id = process->id,
     };
+
+    if (read)
+        disk_general_log->r_req_count++;
+    else disk_general_log->w_req_count++;
 
     list_add(disk_log_list, new_disk_log);
     sem_post(&disk_mutex);

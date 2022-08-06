@@ -20,6 +20,8 @@ list_t* process_log_list;
 list_t* disk_log_list;
 list_t* io_log_list;
 
+disk_log_t* disk_general_log;
+
 log_window_t* process_log;
 log_window_t* memory_log;
 log_window_t* disk_log;
@@ -27,7 +29,23 @@ log_window_t* io_log;
 menu_window_t* menu_window;
 
 void process_log_init() { process_log_list = list_init(); }
-void disk_log_init() { disk_log_list = list_init(); }
+
+void disk_log_init() {
+    disk_general_log = (disk_log_t *)malloc(sizeof(disk_log_t));
+
+    /* It check if the disk log could not be allocated */
+    if (!disk_general_log) {
+        printf("Not enough memory to allocate the disk log.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    disk_general_log->r_req_count = 0;
+    disk_general_log->w_req_count = 0;
+
+    /* It initializes the disk log list */
+    disk_log_list = list_init();
+}
+
 void io_log_init() { io_log_list = list_init(); }
 
 void main_menu_functions(int x) {
@@ -524,6 +542,8 @@ void* refresh_memory_log(void* _) {
         wattron(memory_log->title_window, COLOR_PAIR(1) | A_BOLD);
         mvwprintw(memory_log->title_window, 1, 1, "Memory remaining: %7d bytes",
                   kernel->seg_table.remaining);
+        mvwprintw(memory_log->title_window, 1, (COLS / 2) - 17, "Use: %.1lf%%/100%%",
+                  (1073741824 - kernel->seg_table.remaining) * 100.0 / 1073741824.0);
         wattron(memory_log->title_window, COLOR_PAIR(3));
 
         sem_wait(&mem_mutex);
@@ -715,9 +735,18 @@ void* refresh_disk_log(void* _) {
     list_node_t* i = disk_log_list->head;
 
     while (1) {
-        i = i->next;
 
+        char* buffer = (char *)malloc(sizeof(char) * 100);
         pthread_mutex_lock(&print_mutex);
+        sprintf(buffer, "DIR: %s    R: %d    W: %d",
+                disk_general_log->forward_dir ? "FORWARD" : "BACKWARD",
+                disk_general_log->r_req_count,
+                disk_general_log->w_req_count);
+
+        wattron(disk_log->title_window, COLOR_PAIR(1) | A_BOLD);
+        mvwprintw(disk_log->title_window, 1, (COLS / 2) - strlen(buffer) - 2, buffer);
+        wattron(disk_log->title_window, COLOR_PAIR(3) | A_BOLD);
+        free(buffer);
         for (; i != NULL; i = i->next) {
             disk_log_info_t* disk_info = ((disk_log_info_t*)i->content);
 
@@ -751,6 +780,7 @@ void* refresh_disk_log(void* _) {
         i = disk_log_list->tail;
 
         sem_wait(&disk_mutex);
+        i = i->next;
     }
 }
 
@@ -806,7 +836,7 @@ void* refresh_io_log(void* _) {
             wprintw(io_log->text_window, "%d ", io_info->duration);
 
             wattron(io_log->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(io_log->text_window, "u.t..\n");
+            wprintw(io_log->text_window, "u.t.\n");
         }
         pthread_mutex_unlock(&print_mutex);
 
