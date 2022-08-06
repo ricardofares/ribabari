@@ -71,9 +71,42 @@ typedef struct {
 } proc_log_info_t;
 
 typedef struct {
+    /**
+     * It indicates that this I/O log
+     * is a printing log information
+     * since this value is 1. Otherwise,
+     * it indicates that this log is
+     * a file system handling a read/write
+     * disk operation.
+     */
+    int p_log;
+
+    /**
+     * It stores the process name in which
+     * is printing for a specified duration.
+     */
     char* proc_name;
+
+    /**
+     * It stores the process id.
+     */
     int proc_id;
-    int duration;
+
+    /**
+     * It stores the duration in which the
+     * process is printing since the p_log
+     * value is equal to 1.
+     *
+     * However, if the value of p_log is
+     * equal to 0, then this value represents
+     * the inode number.
+     */
+    union {
+        int duration;
+        int inumber;
+    } value;
+
+    int read;
 } io_log_info_t;
 
 typedef struct {

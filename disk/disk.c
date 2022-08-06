@@ -118,6 +118,17 @@ void disk_request(process_t* process, disk_scheduler_t* disk_scheduler,
     list_add(disk_log_list, new_disk_log);
     sem_post(&disk_mutex);
 
+    io_log_info_t* new_io_log = (io_log_info_t*)malloc(sizeof(io_log_info_t));
+    (*new_io_log) = (io_log_info_t) {
+            .p_log = 0,
+            .proc_id = process->id,
+            .proc_name = proc_name,
+            .value.inumber = INODE_NUMBER(DISK_BLOCK(track)),
+            .read = read,
+    };
+    list_add(io_log_list, (void*)new_io_log);
+    sem_post(&io_mutex);
+
     int time = DISK_OPERATION_TIME;
 
     /* It is going from the inner track to the outer one */

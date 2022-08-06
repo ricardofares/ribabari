@@ -17,9 +17,10 @@ void print_request(process_t* process, int duration) {
 
     char* proc_name = strdup(process->name);
     (*new_io_log) = (io_log_info_t) {
+        .p_log = 1,
         .proc_id = process->id,
         .proc_name = proc_name,
-        .duration = duration,
+        .value.duration = duration,
     };
     list_add(io_log_list, (void*)new_io_log);
     sem_post(&io_mutex);
