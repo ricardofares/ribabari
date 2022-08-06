@@ -167,6 +167,7 @@ typedef struct {
     M("Process create", CREATE)                                                \
     M("Exit", EXIT)
 
+#define ONE_GIGABIT 1073741824
 void print_item_index(menu_t* menu, const ITEM* item);
 void menu_loop(menu_t* main_menu, void (*func)(int));
 
@@ -206,6 +207,9 @@ log_window_t* init_io_log();
 log_window_t* init_process_log();
 log_window_t* init_memory_log();
 log_window_t* init_disk_log();
+
+void refresh_disk_title_window();
+void refresh_memory_title_window();
 
 /* Internal Terminal Function Prototypes */
 
