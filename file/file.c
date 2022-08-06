@@ -145,7 +145,7 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
         /* Update the inode last modified field */
         time(&inode->last_modified);
 #if OS_FS_DEBUG
-        printf("An inode %d has been put as an active file by process %s (%d).\n", inumber, process->name, process->id);
+        printf("An inode %d has been put as an active file by process %s (%d) from a read operation.\n", inumber, process->name, process->id);
 #endif // OS_FS_DEBUG
     }
 
@@ -158,7 +158,7 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
         inode->o_count++;
 
 #if OS_FS_DEBUG
-        printf("Process %s is in its first time being activating the inode %d.", process->name, inumber);
+        printf("Process %s is in its first time being activating the inode %d from a read operation.", process->name, inumber);
 #endif // OS_FS_DEBUG
     }
 
@@ -184,13 +184,32 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
 
     /* It checks if the inode could not be found in the file table */
     if (!inode) {
-        printf("An inode with the inumber %d must exists.\n", inumber);
-        exit(EXIT_FAILURE);
+        inode = inode_create(inumber);
+
+        /* Add the inode into the active inode list */
+        list_add(file_table->ilist->inode_list, inode);
+
+        time(&inode->last_accessed);
+#if OS_FS_DEBUG
+        printf("An inode %d has been put as an active file by process %s (%d) from a write operation.\n", inumber, process->name, process->id);
+#endif // OS_FS_DEBUG
+    }
+
+    /* It checks if the process has not before opened this file */
+    if (!has_opened_file(process, inumber)) {
+        list_add(process->o_files, inumber);
+
+        /* Increase the counter of the amount of process */
+        /* has this file opened */
+        inode->o_count++;
+
+#if OS_FS_DEBUG
+        printf("Process %s is in its first time being activating the inode %d from a write operation.", process->name, inumber);
+#endif // OS_FS_DEBUG
     }
 
     /* Update both access time fields */
     time(&inode->last_modified);
-    time(&inode->last_accessed);
 
 #if OS_FS_DEBUG
     printf("Process %s is writing at the inode %d.\n", process->name, inumber);
