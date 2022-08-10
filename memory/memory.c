@@ -71,13 +71,10 @@ static void segment_add(segment_table_t* seg_table, segment_t* seg) {
 static void memory_page_swap(segment_table_t* seg_table, segment_t* seg) {
     int i;
     int freed = 0;
-    list_node_t* curr;
 
-    for (curr = seg_table->seg_list->head; curr != NULL; curr = curr->next) {
-        segment_t* curr_seg = (segment_t *)curr->content;
-
-        for (i = 0; i < curr_seg->page_count; i++) {
-            page_t* page = curr_seg->page_table + i;
+    FOREACH(seg_table->seg_list, segment_t*) {
+        for (i = 0; i < it->page_count; i++) {
+            page_t* page = it->page_table + i;
 
             /* If the page is being referenced, then the */
             /* used bit is cleared (giving to it a second chance) */
@@ -119,11 +116,11 @@ void segment_table_init(segment_table_t* seg_table) {
  *         could not be found
  */
 segment_t* segment_find(segment_table_t* seg_table, int sid) {
-    list_node_t* seg_node;
-    for (seg_node = seg_table->seg_list->head; seg_node != NULL;
-         seg_node = seg_node->next)
-        if (((segment_t *)seg_node->content)->id == sid)
-            return seg_node->content;
+    FOREACH(seg_table->seg_list, segment_t*) {
+        if (it->id == sid)
+            return it;
+    }
+
     return NULL;
 }
 

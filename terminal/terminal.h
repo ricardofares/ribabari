@@ -245,6 +245,15 @@ void refresh_memory_title_window();
 static process_t* get_process_sid(int sid);
 
 /**
+ * It returns the maximum segment size
+ * allocated in the memory table.
+ *
+ * @return the maximum segment size
+ *         allocated in the memory table
+ */
+static int max_seg_size();
+
+/**
  * It calculates the page in the segment that
  * is in use by the process. The in use is in
  * the meaning that the process is executing

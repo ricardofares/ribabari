@@ -300,11 +300,10 @@ static void read_semaphores(process_t* proc, char* sem_line) {
  *            Otherwise, 0 is returned.
  */
 int has_opened_file(process_t* process, int inumber) {
-    list_node_t* curr_node;
-
-    for (curr_node = process->o_files->head; curr_node != NULL;
-         curr_node = curr_node->next)
-        if (((int)curr_node->content) == inumber)
+    FOREACH(process->o_files, int) {
+        if (it == inumber)
             return 1;
+    }
+
     return 0;
 }

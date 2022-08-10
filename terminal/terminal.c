@@ -506,8 +506,8 @@ void refresh_memory_title_window() {
 
     wclear(memory_window->title_window);
     wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_window->title_window, 1, 1, "Remaining %4dkb",
-              kernel->seg_table.remaining / 1024);
+    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %4dkb LSS: %dkb",
+              kernel->seg_table.remaining >> 10, max_seg_size() >> 10);
     mvwprintw(memory_window->title_window, 1,
               (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2), "%s", usage_buffer);
     wattron(memory_window->title_window, COLOR_PAIR(3));
@@ -624,60 +624,6 @@ log_window_t* init_memory_log() {
     };
 
     return log_window;
-}
-
-/* Internal Terminal Function Definitions */
-
-/**
- * It calculates the page in the segment that
- * is in use by the process. The in use is in
- * the meaning that the process is executing
- * an instruction in that page currently.
- *
- * @param segment the segment
- *
- * @return the page index (a non-negative value);
- *         otherwise, returns -1 indicating that
- *         no page in that segment is being used.
- */
-static int page_inuse_index(const segment_t* segment) {
-    int i;
-
-    for (i = segment->page_count - 1; i >= 0; i--)
-        if (segment->page_table[i].used)
-            goto page_in_use;
-    return -1;
-page_in_use:
-    {
-        const process_t* proc = get_process_sid(segment->id);
-        return MAX(1, proc->pc / (double)proc->code_len * segment->page_qtd);
-    }
-}
-
-/**
- * It returns a pointer to a process that has the
- * specified segment id. Otherwise, if there is not
- * exists such a process, then NULL is returned.
- *
- * @param sid the segment id
- *
- * @return a pointer to a process that has the
- *         specified segment id; otherwise, if
- *         there is not exists such a process,
- *         then NULL is returned.
- */
-static process_t* get_process_sid(const int sid) {
-    const list_t* proc_table = kernel->proc_table;
-    list_node_t* curr_node;
-
-    for (curr_node = proc_table->head; curr_node != NULL;
-         curr_node = curr_node->next) {
-        process_t* proc = (process_t*)curr_node->content;
-        if (proc->seg_id == sid)
-            return proc;
-    }
-
-    return NULL;
 }
 
 log_window_t* init_disk_log() {
@@ -899,3 +845,72 @@ _Noreturn void* refresh_io_log() {
         i = i->next;
     }
 }
+
+/* Internal Terminal Function Definitions */
+
+/**
+ * It calculates the page in the segment that
+ * is in use by the process. The in use is in
+ * the meaning that the process is executing
+ * an instruction in that page currently.
+ *
+ * @param segment the segment
+ *
+ * @return the page index (a non-negative value);
+ *         otherwise, returns -1 indicating that
+ *         no page in that segment is being used.
+ */
+static int page_inuse_index(const segment_t* segment) {
+    int i;
+
+    for (i = segment->page_count - 1; i >= 0; i--)
+        if (segment->page_table[i].used)
+            goto page_in_use;
+    return -1;
+    page_in_use:
+    {
+        const process_t* proc = get_process_sid(segment->id);
+        return MAX(1, proc->pc / (double)proc->code_len * segment->page_qtd);
+    }
+}
+
+/**
+ * It returns the maximum segment size
+ * allocated in the memory table.
+ *
+ * @return the maximum segment size
+ *         allocated in the memory table
+ */
+static int max_seg_size() {
+    int max = 0;
+
+    FOREACH(kernel->seg_table.seg_list, segment_t*) {
+        if (max < it->size)
+            max = it->size;
+    }
+
+    return max;
+}
+
+
+/**
+ * It returns a pointer to a process that has the
+ * specified segment id. Otherwise, if there is not
+ * exists such a process, then NULL is returned.
+ *
+ * @param sid the segment id
+ *
+ * @return a pointer to a process that has the
+ *         specified segment id; otherwise, if
+ *         there is not exists such a process,
+ *         then NULL is returned.
+ */
+static process_t* get_process_sid(const int sid) {
+    FOREACH(kernel->proc_table, process_t*) {
+        if (it->seg_id == sid)
+            return it;
+    }
+
+    return NULL;
+}
+

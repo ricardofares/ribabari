@@ -105,13 +105,9 @@ void file_table_init(file_table_t* file_table) {
  *         NULL is returned.
  */
 inode_t* find_inode(file_table_t* file_table, int inumber) {
-    list_node_t* curr_node;
-
-    for (curr_node = file_table->ilist->inode_list->head; curr_node != NULL;
-         curr_node = curr_node->next) {
-        inode_t* inode = (inode_t *)curr_node->content;
-        if (inode->id == inumber)
-            return inode;
+    FOREACH(file_table->ilist->inode_list, inode_t*) {
+        if (it->id == inumber)
+            return it;
     }
 
     return NULL;

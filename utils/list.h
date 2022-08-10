@@ -1,6 +1,12 @@
 #ifndef OS_PROJECT_LIST_H
 #define OS_PROJECT_LIST_H
 
+#define FOREACH(LIST, GENERIC_TYPE)                                                                     \
+            GENERIC_TYPE it = ((LIST)->head == NULL) ? NULL : (GENERIC_TYPE)((LIST)->head)->content;    \
+            for (list_node_t* curr_node = (LIST)->head;                                                 \
+                 curr_node != NULL; curr_node = curr_node->next,                                        \
+                                    it = (curr_node == NULL ? NULL : (GENERIC_TYPE)curr_node->content)) \
+
 /**
  * A doubly-linked node.
  */
