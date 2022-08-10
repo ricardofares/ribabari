@@ -51,13 +51,9 @@ _Noreturn void cpu() {
         /* It checks if there is no scheduled proc */
         if (!kernel->scheduler.scheduled_proc) {
             if (!no_process) {
-                proc_log_info_t* new_proc_info
-                    = malloc(sizeof(proc_log_info_t));
-                new_proc_info->is_proc = 0;
-                list_add(process_log_list, (void*)new_proc_info);
+                process_np_log();
                 sem_post(&log_mutex);
                 sem_post(&refresh_sem);
-//                refresh();
                 no_process = 1;
             }
 
@@ -66,7 +62,6 @@ _Noreturn void cpu() {
         }
         /* There is some process running */
         else {
-            char* proc_name = strdup(kernel->scheduler.scheduled_proc->name);
             no_process = 0;
             do {
                 clock_gettime(CLOCK_REALTIME, &end);
@@ -95,19 +90,11 @@ _Noreturn void cpu() {
                     if (!page->used)
                         page->used = 1;
 
-                    proc_log_info_t* new_proc_info
-                        = malloc(sizeof(proc_log_info_t));
-
-                    (*new_proc_info) = (proc_log_info_t) {
-                        .name = proc_name,
-                        .remaining
-                        = kernel->scheduler.scheduled_proc->remaining,
-                        .pc = pc,
-                        .id = seg->id,
-                        .is_proc = 1,
-                        .f_op_count = kernel->scheduler.scheduled_proc->o_files->size
-                    };
-                    list_add(process_log_list, (void*)new_proc_info);
+                    process_log(kernel->scheduler.scheduled_proc->name,
+                                kernel->scheduler.scheduled_proc->remaining,
+                                pc,
+                                seg->id,
+                                kernel->scheduler.scheduled_proc->o_files->size);
                     sem_post(&log_mutex);
                     sem_post(&refresh_sem);
 

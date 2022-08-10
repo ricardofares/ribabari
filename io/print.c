@@ -13,14 +13,7 @@
  * @param duration the print duration
  */
 void print_request(process_t* process, int duration) {
-    char* proc_name = strdup(process->name);
-
-    io_log_info_t* io_log = (io_log_info_t*)malloc(sizeof(io_log_info_t));
-    io_log->type = IO_LOG_PRINT;
-    io_log->print_log = (io_log_print_t *)malloc(sizeof(io_log_print_t));
-    io_log->print_log->proc_name = proc_name;
-    io_log->print_log->duration = duration;
-    list_add(io_log_list, io_log);
+    io_print_log(process->name, duration);
     sem_post(&io_mutex);
 
     process->remaining -= duration;

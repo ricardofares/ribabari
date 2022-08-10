@@ -21,32 +21,13 @@ list_t* disk_log_list;
 list_t* io_log_list;
 
 disk_log_t* disk_general_log;
+io_log_t* io_general_log;
 
 log_window_t* process_window;
 log_window_t* memory_window;
 log_window_t* disk_window;
 log_window_t* io_window;
 menu_window_t* menu_window;
-
-void process_log_init() { process_log_list = list_init(); }
-
-void disk_log_init() {
-    disk_general_log = (disk_log_t*)malloc(sizeof(disk_log_t));
-
-    /* It checks if the disk log could not be allocated */
-    if (!disk_general_log) {
-        printf("Not enough memory to allocate the disk log.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    disk_general_log->r_req_count = 0;
-    disk_general_log->w_req_count = 0;
-
-    /* It initializes the disk log list */
-    disk_log_list = list_init();
-}
-
-void io_log_init() { io_log_list = list_init(); }
 
 void main_menu_functions(int x) {
     coordinates_t whatever = {
@@ -767,6 +748,20 @@ log_window_t* init_io_log() {
     return log_window;
 }
 
+void refresh_io_title_window() {
+    wclear(io_window->title_window);
+    wattron(io_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(io_window->title_window, 1, 1, "R: %ld bytes W: %ld bytes Print: %d u.t.",
+              io_general_log->r_bytes, io_general_log->w_bytes, io_general_log->p_time);
+
+    const char title[] = "I/O View";
+
+    wattron(io_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(io_window->title_window, 1,
+              (COLS / 2 - (int)strlen(title)) / 2, title);
+    wattron(io_window->title_window, COLOR_PAIR(3) | A_BOLD);
+}
+
 _Noreturn void* refresh_io_log() {
     sem_wait(&io_mutex);
     list_node_t* i = io_log_list->head;
@@ -835,6 +830,7 @@ _Noreturn void* refresh_io_log() {
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
                 wprintw(io_window->text_window, " operation.\n");
             }
+            refresh_io_title_window();
         }
         pthread_mutex_unlock(&print_mutex);
 

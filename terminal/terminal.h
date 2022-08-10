@@ -1,7 +1,10 @@
 #ifndef OS_PROJECT_TERMINAL_H
 #define OS_PROJECT_TERMINAL_H
+
 #include "../memory/memory.h"
-#include "../utils/list.h"
+
+#include "log.h"
+
 #include <curses.h>
 #include <menu.h>
 #include <stdlib.h>
@@ -17,130 +20,11 @@
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
 
-extern list_t* process_log_list;
-extern list_t* disk_log_list;
-extern list_t* io_log_list;
-
 extern sem_t log_mutex;
 extern sem_t mem_mutex;
 extern sem_t disk_mutex;
 extern sem_t refresh_sem;
 extern sem_t io_mutex;
-
-typedef struct DiskLog {
-    /**
-     * It stores the amount of
-     * disk read operation requests.
-     */
-    int r_req_count;
-
-    /**
-     * It stores the amount of
-     * disk write operation requests.
-     */
-    int w_req_count;
-
-    /**
-     * It stores if the disk arm is
-     * going from the inner track to
-     * the outer one or vice-versa.
-     */
-    int forward_dir;
-
-    /**
-     * It stores the current track
-     * in which the disk arm is on.
-     */
-    int curr_track;
-
-    /**
-     * It stores the angular velocity.
-     */
-    int angular_v;
-
-    /**
-     * It stores the amount of pending
-     * disk read/write operations requests.
-     */
-    int pending_requests_size;
-} disk_log_t;
-
-extern disk_log_t* disk_general_log;
-
-typedef struct {
-    int is_proc;
-
-    char* name;
-    int remaining;
-    int id;
-    int pc;
-
-    /**
-     * It stores the amount of open
-     * files being used by this process.
-     */
-    int f_op_count;
-} proc_log_info_t;
-
-typedef enum IoLogType {
-    IO_LOG_PRINT,
-    IO_LOG_FILE_SYSTEM,
-    IO_LOG_DISK_REQUEST
-} io_log_type_t;
-
-typedef struct IoLogPrint {
-    char* proc_name;
-    int duration;
-} io_log_print_t;
-
-typedef struct IoLogFileSystem {
-    char* proc_name;
-    int inumber;
-    int read;
-} io_log_fs_t;
-
-typedef struct IoLogDiskRequest {
-    char* proc_name;
-    int read;
-} io_log_disk_req_t;
-
-typedef struct {
-    /**
-     * It stores the log type.
-     */
-    io_log_type_t type;
-
-    /**
-     * It stores a pointer to a print
-     * log. This value is not null since
-     * the log type is IO_LOG_PRINT.
-     */
-    io_log_print_t* print_log;
-
-    /**
-     * It stores a pointer to a file
-     * system log. This value is not
-     * null since the log type is
-     * IO_LOG_FILE_SYSTEM.
-     */
-    io_log_fs_t* fs_log;
-
-    /**
-     * It stores a pointer to a disk
-     * request log. This value is not
-     * null since the log type is
-     * IO_LOG_DISK_REQUEST.
-     */
-    io_log_disk_req_t* disk_req_log;
-} io_log_info_t;
-
-typedef struct {
-    char *proc_name;
-    int track;
-    int is_read;
-    int proc_id;
-    int turnaround;
-} disk_log_info_t;
 
 typedef enum main_menu_choices {
     CREATE,
@@ -209,10 +93,6 @@ void free_menu_window(menu_window_t* window);
 char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
 void print_with_window(char* string, char* title, int y, int x);
-
-void process_log_init();
-void disk_log_init();
-void io_log_init();
 
 _Noreturn void* refresh_process_log();
 _Noreturn void* refresh_memory_log();

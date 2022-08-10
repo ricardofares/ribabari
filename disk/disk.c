@@ -147,13 +147,7 @@ void disk_request(process_t* process, disk_scheduler_t* disk_scheduler,
     disk_req->read = read;
     disk_req->turnaround = time;
 
-    io_log_info_t* io_log = (io_log_info_t *)malloc(sizeof(io_log_info_t));
-    io_log->type = IO_LOG_DISK_REQUEST;
-    io_log->disk_req_log = (io_log_disk_req_t *)malloc(sizeof(io_log_disk_req_t));
-    io_log->disk_req_log->proc_name = strdup(process->name);
-    io_log->disk_req_log->read = disk_req->read;
-
-    list_add(io_log_list, io_log);
+    io_disk_log(process->name, read);
     sem_post(&io_mutex);
 
     /* Add the disk request into the pending requests */
@@ -206,33 +200,10 @@ static void rw_disk_op_resolve(int track) {
         /* It check if that pending requests is for that track */
         /* If so, then resolve its read/write disk operation */
         if (disk_req->track == track) {
-            disk_log_info_t* new_disk_log
-                    = (disk_log_info_t*)malloc(sizeof(disk_log_info_t));
-
-            char* proc_name = strdup(disk_req->process->name);
-            (*new_disk_log) = (disk_log_info_t) {
-                    .proc_name = proc_name,
-                    .is_read = disk_req->read,
-                    .track = track,
-                    .proc_id = disk_req->process->id,
-                    .turnaround = disk_req->turnaround,
-            };
-
-            if (disk_req->read)
-                disk_general_log->r_req_count++;
-            else disk_general_log->w_req_count++;
-
-            list_add(disk_log_list, new_disk_log);
+            disk_log(disk_req->process->name, disk_req->process->id, track, disk_req->read, disk_req->turnaround);
             sem_post(&disk_mutex);
 
-            io_log_info_t* io_log = (io_log_info_t *)malloc(sizeof(io_log_info_t));
-            io_log->type = IO_LOG_FILE_SYSTEM;
-            io_log->fs_log = (io_log_fs_t *)malloc(sizeof(io_log_fs_t));
-            io_log->fs_log->proc_name = proc_name;
-            io_log->fs_log->inumber = INODE_NUMBER(DISK_BLOCK(track));
-            io_log->fs_log->read = disk_req->read;
-
-            list_add(io_log_list, io_log);
+            io_fs_log(disk_req->process->name, INODE_NUMBER(DISK_BLOCK(track)), disk_req->read);
             sem_post(&io_mutex);
 
             /* After perform the disk read/write operation */
