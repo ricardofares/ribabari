@@ -179,8 +179,8 @@ void io_fs_log(const char* process_name, const int inumber, const int read) {
 
     /* It updates the I/O general log information */
     if (read)
-        io_general_log->r_bytes += (1 + (rand() & 16));
-    else io_general_log->w_bytes += (1 + (rand() & 16));
+        io_general_log->r_bytes += (1 + (rand() & 65535));
+    else io_general_log->w_bytes += (1 + (rand() & 65535));
 
     /* Register the log into the I/O log list */
     list_add(io_log_list, log);
@@ -255,4 +255,43 @@ void io_print_log(const char* process_name, const int duration) {
 
     /* Register the log into the I/O log list */
     list_add(io_log_list, log);
+}
+
+/* Resource Acquisition/Release Log Related Function Definitions */
+
+/**
+ * It initializes the resource acquisition/release
+ * logging subsystem.
+ */
+void res_acq_log_init() {
+    /* It initializes the resource acquisition/release log list */
+    res_acq_log_list = list_init();
+}
+
+/**
+ * It creates an resource acquisition/release
+ * log and signal the resource acquisition view
+ * for further view update.
+ *
+ * Further, the application closes immediately
+ * if there is not enough memory to allocate
+ * the needed internal structures to perform
+ * the log operation.
+ */
+void res_acq_log(const char* process_name, const char* sem_name, const int acq, const int blocked) {
+    res_acq_log_t* log = (res_acq_log_t *)malloc(sizeof(res_acq_log_t));
+
+    /* It checks if the resource acquisition/release could not be allocated */
+    if (!log) {
+        printf("Not enough memory to allocate an resource acquisition/release log.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    log->proc_name = process_name == NULL ? NULL : strdup(process_name);
+    log->sem_name = strdup(sem_name);
+    log->acq = acq;
+    log->blocked = blocked;
+
+    /* Register the log into the resource acquisition/release list */
+    list_add(res_acq_log_list, log);
 }

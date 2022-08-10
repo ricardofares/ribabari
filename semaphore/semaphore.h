@@ -100,10 +100,12 @@ void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void));
  * requested process will be woken up.
  *
  * @param sem a pointer to the semaphore
+ * @param process the process which is releasing
+ *                the semaphore
  * @param wakeup a function whose invoke causes
  *               a process to wake up
  */
-void semaphore_V(semaphore_t* sem, void (*wakeup)(process_t*));
+void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*));
 
 /* Semaphore Table Function Prototypes */
 

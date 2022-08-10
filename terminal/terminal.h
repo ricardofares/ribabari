@@ -20,14 +20,9 @@
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
 
-extern sem_t log_mutex;
-extern sem_t mem_mutex;
-extern sem_t disk_mutex;
-extern sem_t refresh_sem;
-extern sem_t io_mutex;
-
 typedef enum main_menu_choices {
     CREATE,
+    TOGGLE_RESOURCE_VIEW
 } main_menu_choices;
 
 typedef struct menu_window_t {
@@ -70,8 +65,9 @@ typedef struct {
 } log_window_t;
 
 #define MAIN_MENU(M)                                                           \
-    M("Process create", CREATE)                                                \
-    M("Exit", EXIT)
+    M("Process Create", CREATE)                                                \
+    M("Toggle Resource Acquisition View", TOGGLE_RESOURCE_VIEW)                \
+    M("Exit", EXIT)                                                            \
 
 #define ONE_GIGABIT 1073741824
 void menu_loop(menu_t* main_menu, void (*func)(int));
@@ -99,11 +95,13 @@ _Noreturn void* refresh_memory_log();
 _Noreturn void* refresh_disk_log();
 _Noreturn void* refresh_io_log();
 _Noreturn void* refresh_logs();
+_Noreturn void* refresh_res_acq_log();
 
 log_window_t* init_io_log();
 log_window_t* init_process_log();
 log_window_t* init_memory_log();
 log_window_t* init_disk_log();
+log_window_t* init_res_acq_log();
 
 void refresh_disk_title_window();
 void refresh_memory_title_window();

@@ -12,6 +12,7 @@ sem_t mem_mutex;
 sem_t disk_mutex;
 sem_t refresh_sem;
 sem_t io_mutex;
+sem_t res_acq_mutex;
 
 pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t refresh_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -19,6 +20,7 @@ pthread_mutex_t refresh_mutex = PTHREAD_MUTEX_INITIALIZER;
 list_t* process_log_list;
 list_t* disk_log_list;
 list_t* io_log_list;
+list_t* res_acq_log_list;
 
 disk_log_t* disk_general_log;
 io_log_t* io_general_log;
@@ -29,24 +31,42 @@ log_window_t* disk_window;
 log_window_t* io_window;
 menu_window_t* menu_window;
 
-void main_menu_functions(int x) {
+log_window_t* res_acq_window;
+
+int r_view = 0;
+
+void main_menu_functions(int menu_function) {
     coordinates_t whatever = {
         .begin_x = -1,
         .begin_y = -1,
     };
-    char* input;
-    if (x == CREATE) {
-        input = get_input_from_window("What is the name of the file?", whatever,
-                                      40);
-        if (access(input, F_OK)) {
-            print_with_window(
-                "The file could not be executed or it does not exist.",
-                "WARNING.", -1, -1);
-            return;
-        }
 
-        sysCall(PROCESS_CREATE, (void*)input);
-        free(input);
+    switch (menu_function) {
+        case CREATE: {
+            char* input = get_input_from_window("What is the name of the file?", whatever,
+                                                40);
+
+            if (access(input, F_OK)) {
+                print_with_window(
+                        "The file could not be executed or it does not exist.",
+                        "WARNING.", -1, -1);
+                return;
+            }
+
+            /* It performs a system call tto create the process */
+            sysCall(PROCESS_CREATE, (void *)input);
+
+            free(input);
+            break;
+        }
+        case TOGGLE_RESOURCE_VIEW: {
+            r_view = !r_view;
+            break;
+        }
+        default: {
+            printf("Menu function %d unrecognized.\n", menu_function);
+            break;
+        }
     }
 }
 
@@ -60,10 +80,10 @@ void end_screen(void) {
 
 _Noreturn void* refresh_logs() {
     while (1) {
-        //        sem_wait(&refresh_sem);
         pthread_mutex_lock(&refresh_mutex);
 
         refresh();
+
         box(disk_window->title_window, 0, 0);
         box(disk_window->main_window, 0, 0);
         wrefresh(disk_window->main_window);
@@ -72,10 +92,16 @@ _Noreturn void* refresh_logs() {
         box(process_window->main_window, 0, 0);
         wrefresh(process_window->main_window);
 
-        box(memory_window->title_window, 0, 0);
-        box(memory_window->main_window, 0, 0);
-        wrefresh(memory_window->main_window);
-        wrefresh(memory_window->title_window);
+        if (r_view == 0) {
+            box(memory_window->title_window, 0, 0);
+            box(memory_window->main_window, 0, 0);
+            wrefresh(memory_window->main_window);
+            wrefresh(memory_window->title_window);
+        } else {
+            box(res_acq_window->title_window, 0, 0);
+            box(res_acq_window->main_window, 0, 0);
+            wrefresh(res_acq_window->main_window);
+        }
 
         wattrset(menu_window->title_win, COLOR_PAIR(3));
         box(menu_window->title_win, 0, 0);
@@ -85,6 +111,7 @@ _Noreturn void* refresh_logs() {
         pthread_mutex_lock(&print_mutex);
         refresh_disk_title_window();
         pthread_mutex_unlock(&print_mutex);
+
         box(io_window->title_window, 0, 0);
         box(io_window->main_window, 0, 0);
         wrefresh(io_window->main_window);
@@ -100,12 +127,11 @@ int begin_terminal() {
     /* Initialize curses */
     init_screen();
 
-    //    print_welcome();
-
     pthread_t log_thread;
     pthread_t memory_thread;
     pthread_t disk_thread;
     pthread_t io_thread;
+    pthread_t res_acq_thread;
 
     menu_choice_t choices[] = {MAIN_MENU(SI)};
     menu_t* main_menu = create_menu(ARRAY_SIZE(choices), choices, "Main Menu");
@@ -121,6 +147,9 @@ int begin_terminal() {
 
     io_window = init_io_log();
     pthread_create(&io_thread, NULL, refresh_io_log, NULL);
+
+    res_acq_window = init_res_acq_log();
+    pthread_create(&res_acq_thread, NULL, refresh_res_acq_log, NULL);
 
     start_menu_and_loop(main_menu);
     unpost_menu(main_menu->curses_menu);
@@ -637,6 +666,34 @@ log_window_t* init_disk_log() {
     return log_window;
 }
 
+log_window_t* init_res_acq_log() {
+    const int main_height = LINES / 2;
+    const int main_width = COLS / 2;
+
+    WINDOW* main_window = newwin(main_height, main_width, LINES / 2, COLS / 2);
+    WINDOW* text_window = derwin(
+            main_window, main_height - TITLE_OFFSET - BOX_OFFSET,
+            main_width - BOX_OFFSET - 1, (BOX_OFFSET / 2) + TITLE_OFFSET, 1);
+    WINDOW* title_window = derwin(main_window, 3, main_width, 0, 0);
+    scrollok(text_window, 1);
+    wattrset(text_window, COLOR_PAIR(2));
+
+    const char title[] = "Resource Acquisition View";
+    title_print(title_window, (main_width - (int)strlen(title)) / 2, title);
+
+    wattrset(main_window, COLOR_PAIR(3));
+    wattrset(title_window, COLOR_PAIR(3));
+
+    log_window_t* log_window = malloc(sizeof(log_window_t));
+    (*log_window) = (log_window_t) {
+            .main_window = main_window,
+            .text_window = text_window,
+            .title_window = title_window,
+    };
+
+    return log_window;
+}
+
 void refresh_disk_title_window() {
     //    pthread_mutex_lock(&print_mutex);
     char* disk_direction = (char*)malloc(sizeof(char) * 16);
@@ -718,12 +775,65 @@ _Noreturn void* refresh_disk_log() {
     }
 }
 
+_Noreturn void* refresh_res_acq_log() {
+    sem_wait(&res_acq_mutex);
+
+    list_node_t* i = res_acq_log_list->head;
+
+    while (1) {
+        pthread_mutex_lock(&print_mutex);
+        for (; i != NULL; i = i->next) {
+            res_acq_log_t* log = ((res_acq_log_t *)i->content);
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, "Process ");
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(res_acq_window->text_window, "%s ", log->proc_name);
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+
+            if (!(log->acq && log->blocked)) {
+                wprintw(res_acq_window->text_window, "has ");
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(res_acq_window->text_window, "%s ", log->acq ? "acquired" : "released");
+            } else {
+                wprintw(res_acq_window->text_window, "has been ");
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(res_acq_window->text_window, "blocked", log);
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(res_acq_window->text_window, ", waiting for ");
+            }
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, "the semaphore ");
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(res_acq_window->text_window, "%s", log->sem_name);
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, ".\n");
+        }
+
+        pthread_mutex_unlock(&print_mutex);
+
+        i = res_acq_log_list->tail;
+
+        sem_wait(&res_acq_mutex);
+
+        i = i->next;
+    }
+}
+
 log_window_t* init_io_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
     const int text_offset = BOX_OFFSET + TITLE_OFFSET;
-    WINDOW* main_window = newwin(main_height - 6, main_width, 6, 0);
+    WINDOW* main_window = newwin(main_height - 7, main_width, 7, 0);
     WINDOW* text_window
         = derwin(main_window, main_height - 6 - text_offset,
                  main_width - (BOX_OFFSET + 1), BOX_OFFSET + 1, 1);

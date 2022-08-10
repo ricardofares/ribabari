@@ -112,7 +112,7 @@ void sysCall(kernel_function_t func, void *arg) {
             break;
         }
         case SEMAPHORE_V: {
-            semaphore_V((semaphore_t *)arg, wakeup);
+            semaphore_V((semaphore_t *)arg, kernel->scheduler.scheduled_proc, wakeup);
             break;
         }
         case DISK_READ_REQUEST: {

@@ -4,6 +4,11 @@
 
 #include "semaphore.h"
 
+#ifndef OS_LOG_SYSTEM_LOADED
+#define OS_LOG_SYSTEM_LOADED
+#include "../terminal/log.h"
+#endif // OS_LOG_SYSTEM_LOADED
+
 /* Semaphore Function Definitions */
 
 /**
@@ -83,12 +88,20 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name) {
  *             to this semaphore
  */
 void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void)) {
+    int blocked = 0;
+
     sem_wait(&sem->mutex);
     sem->S--;
     if (sem->S < 0) {
         list_add(sem->waiters, proc);
         sleep();
+
+        blocked = 1;
     }
+
+    res_acq_log(proc->name, sem->name, 1, blocked);
+    sem_post(&res_acq_mutex);
+
     sem_post(&sem->mutex);
 }
 
@@ -99,16 +112,22 @@ void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void)) {
  * requested process will be woken up.
  *
  * @param sem a pointer to the semaphore
+ * @param process the process which is releasing
+ *                the semaphore
  * @param wakeup a function whose invoke causes
  *               a process to wake up
  */
-void semaphore_V(semaphore_t* sem, void (*wakeup)(process_t*)) {
+void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*)) {
     sem_wait(&sem->mutex);
     sem->S++;
     if (sem->S <= 0) {
         process_t* proc = list_remove_head(sem->waiters)->content;
         wakeup(proc);
     }
+
+    res_acq_log(process->name, sem->name, 0, 0);
+    sem_post(&res_acq_mutex);
+
     sem_post(&sem->mutex);
 }
 

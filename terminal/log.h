@@ -1,7 +1,16 @@
 #ifndef OS_PROJECT_LOG_H
 #define OS_PROJECT_LOG_H
 
+#include <semaphore.h>
+
 #include "../utils/list.h"
+
+extern sem_t log_mutex;
+extern sem_t mem_mutex;
+extern sem_t disk_mutex;
+extern sem_t refresh_sem;
+extern sem_t io_mutex;
+extern sem_t res_acq_mutex;
 
 /* Process Log Related Structures & Function Prototypes */
 
@@ -328,11 +337,58 @@ void io_disk_log(const char* process_name, const int read);
  */
 void io_print_log(const char* process_name, const int duration);
 
+/* Resource Acquisition/Release Related Structures & Function Prototypes */
+
+typedef struct {
+    /**
+     * The process name which has
+     * requested/release a resource.
+     */
+    const char* proc_name;
+
+    /**
+     * The semaphore name.
+     */
+    const char* sem_name;
+
+    /**
+     * It indicates if it has been
+     * an acquisition or a release.
+     */
+    int acq;
+
+    /**
+     * It indicates if the process
+     * has been blocked by trying
+     * to acquire the sempahore.
+     */
+    int blocked;
+} res_acq_log_t;
+
+/**
+ * It initializes the resource acquisition/release
+ * logging subsystem.
+ */
+void res_acq_log_init();
+
+/**
+ * It creates an resource acquisition/release
+ * log and signal the resource acquisition view
+ * for further view update.
+ *
+ * Further, the application closes immediately
+ * if there is not enough memory to allocate
+ * the needed internal structures to perform
+ * the log operation.
+ */
+void res_acq_log(const char* process_name, const char* sem_name, const int acq, const int blocked);
+
 /* Global Variables */
 
 extern list_t* process_log_list;
 extern list_t* disk_log_list;
 extern list_t* io_log_list;
+extern list_t* res_acq_log_list;
 
 extern disk_log_t* disk_general_log;
 extern io_log_t* io_general_log;
