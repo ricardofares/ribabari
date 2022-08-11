@@ -101,6 +101,10 @@ _Noreturn void* refresh_logs() {
             box(res_acq_window->title_window, 0, 0);
             box(res_acq_window->main_window, 0, 0);
             wrefresh(res_acq_window->main_window);
+
+            pthread_mutex_lock(&print_mutex);
+            refresh_res_acq_title_window();
+            pthread_mutex_unlock(&print_mutex);
         }
 
         wattrset(menu_window->title_win, COLOR_PAIR(3));
@@ -775,6 +779,25 @@ _Noreturn void* refresh_disk_log() {
     }
 }
 
+void refresh_res_acq_title_window() {
+    char* left_title_string = (char*)malloc(sizeof(char) * 16);
+    sprintf(left_title_string, "Semaphore Count: %d", kernel->sem_table.len);
+
+    const char title[] = "Resource Acquisition View";
+    wclear(res_acq_window->title_window);
+
+    wattron(res_acq_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    wmove(res_acq_window->title_window, 1, 1);
+    wprintw(res_acq_window->title_window, "%s", left_title_string);
+
+    title_print(res_acq_window->title_window, (COLS / 2 - (int)strlen(title)) / 2,
+                title);
+
+    wattron(res_acq_window->title_window, COLOR_PAIR(3) | A_BOLD);
+    free(left_title_string);
+}
+
+
 _Noreturn void* refresh_res_acq_log() {
     sem_wait(&res_acq_mutex);
 
@@ -782,6 +805,7 @@ _Noreturn void* refresh_res_acq_log() {
 
     while (1) {
         pthread_mutex_lock(&print_mutex);
+        refresh_res_acq_title_window();
         for (; i != NULL; i = i->next) {
             res_acq_log_t* log = ((res_acq_log_t *)i->content);
 
