@@ -514,7 +514,7 @@ void refresh_memory_title_window() {
     // Print Memory Remaining the title
 
     char* usage_buffer = malloc(16);
-    int usage_buffer_size = sprintf(usage_buffer, "Use: %.1lf%%/100%%",
+    int usage_buffer_size = sprintf(usage_buffer, "Use: %.1lf%%",
                                     (ONE_GIGABIT - kernel->seg_table.remaining)
                                         * 100.0 / ONE_GIGABIT);
 
@@ -543,7 +543,7 @@ _Noreturn void* refresh_memory_log() {
         wclear(memory_window->text_window);
 
         pthread_mutex_lock(&print_mutex);
-
+        refresh_memory_title_window();
         for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
             const segment_t* seg = ((segment_t*)i->content);
             char* buffer = malloc(100);
