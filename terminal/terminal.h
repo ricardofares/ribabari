@@ -1,6 +1,7 @@
 #ifndef OS_PROJECT_TERMINAL_H
 #define OS_PROJECT_TERMINAL_H
 
+#include "../utils/math.h"
 #include "../memory/memory.h"
 
 #include "log.h"
@@ -10,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #define ENTER_KEY 10
 #define BOX_OFFSET 2
 #define TITLE_OFFSET 2
