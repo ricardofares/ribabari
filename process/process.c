@@ -109,6 +109,11 @@ void process_finish(process_t* proc) {
         if (proc_cmp(kernel->scheduler.scheduled_proc, proc))
             sysCall(PROCESS_INTERRUPT, (void *) NONE);
 
+        /* Decrement the process count in the open files */
+        FOREACH(proc->o_files, int) {
+            fs_handle_finish(&kernel->file_table, proc, it);
+        }
+
         segment_free(&kernel->seg_table, proc->seg_id);
 
         /* Remove the node from the scheduler queues */

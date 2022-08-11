@@ -225,4 +225,16 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block);
  */
 void fs_write_request(file_table_t* file_table, process_t* process, int block);
 
+/**
+ * It handles the file attributes from the
+ * specified file when the process has
+ * finished.
+ *
+ * @param file_table the file table
+ * @param process the process in which
+ *                has finished its execution.
+ * @param inumber the inode's number
+ */
+void fs_handle_finish(file_table_t* file_table, process_t* process, int inumber);
+
 #endif // OS_PROJECT_FILE_H

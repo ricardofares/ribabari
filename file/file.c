@@ -219,3 +219,34 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
     printf("Process %s is writing at the inode %d.\n", process->name, inumber);
 #endif // OS_FS_DEBUG
 }
+
+/**
+ * It handles the file attributes from the
+ * specified file when the process has
+ * finished.
+ *
+ * @param file_table the file table
+ * @param process the process in which
+ *                has finished its execution.
+ * @param inumber the inode's number
+ */
+void fs_handle_finish(file_table_t* file_table, process_t* process, int inumber) {
+    FOREACH(file_table->ilist->inode_list, inode_t*) {
+        if (it->id == inumber) {
+            it->o_count--;
+
+            /* It checks if that process that has been just finished */
+            /* it was the last process using this file, then the file */
+            /* will be closed. */
+            if (it->o_count == 0) {
+                /* Remove the current inode from the open file table */
+                list_remove_node(file_table->ilist->inode_list, curr_node);
+
+                io_fs_log(process->name, inumber, IO_LOG_FS_F_CLOSE);
+                sem_post(&io_mutex);
+            }
+
+            break;
+        }
+    }
+}
