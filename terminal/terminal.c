@@ -936,8 +936,21 @@ _Noreturn void* refresh_io_log() {
                 wprintw(io_window->text_window, "%s ", io_log_fs->proc_name);
 
                 wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(io_window->text_window, "has %s the file with inode ",
-                        io_log_fs->read ? "read" : "written");
+                wprintw(io_window->text_window, "has ");
+
+                wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                if ((io_log_fs->opt & IO_LOG_FS_READ) || (io_log_fs->opt & IO_LOG_FS_WRITE)) {
+                    wprintw(io_window->text_window, "%s ",
+                            ((io_log_fs->opt & IO_LOG_FS_READ) ? "read" :
+                             (io_log_fs->opt & IO_LOG_FS_WRITE) ? "written" : "not specified"));
+                } else {
+                    wprintw(io_window->text_window, "%s ",
+                            ((io_log_fs->opt & IO_LOG_FS_F_OPEN) ? "opened" :
+                             (io_log_fs->opt & IO_LOG_FS_F_CLOSE) ? "closed" : "not specified"));
+                }
+
+                wattron(io_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(io_window->text_window, "the file with inode ");
 
                 wattron(io_window->text_window, COLOR_PAIR(3) | A_NORMAL);
                 wprintw(io_window->text_window, "%d", io_log_fs->inumber);

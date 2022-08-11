@@ -155,7 +155,7 @@ void io_log_init() {
  * the needed internal structures to perform
  * the log operation.
  */
-void io_fs_log(const char* process_name, const int inumber, const int read) {
+void io_fs_log(const char* process_name, const int inumber, const io_log_fs_flag_t opt) {
     io_log_info_t* log = (io_log_info_t *)malloc(sizeof(io_log_info_t));
 
     /* It checks if the I/O log could not be allocated */
@@ -175,12 +175,13 @@ void io_fs_log(const char* process_name, const int inumber, const int read) {
     log->type = IO_LOG_FILE_SYSTEM;
     log->fs_log->proc_name = strdup(process_name);
     log->fs_log->inumber = inumber;
-    log->fs_log->read = read;
+    log->fs_log->opt = opt;
 
     /* It updates the I/O general log information */
-    if (read)
+    if (log->fs_log->opt & IO_LOG_FS_READ)
         io_general_log->r_bytes += (1 + (rand() & 65535));
-    else io_general_log->w_bytes += (1 + (rand() & 65535));
+    else if (log->fs_log->opt & IO_LOG_FS_WRITE)
+        io_general_log->w_bytes += (1 + (rand() & 65535));
 
     /* Register the log into the I/O log list */
     list_add(io_log_list, log);

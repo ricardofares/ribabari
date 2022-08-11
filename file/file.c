@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 #include "../constants.h"
+#include "../terminal/log.h"
+
 #include "file.h"
 
 /* Inode Function Definitions */
@@ -133,6 +135,9 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
 
     /* It checks if there is no active inode in the file table with that inumber */
     if (!inode) {
+        io_fs_log(process->name, inumber, IO_LOG_FS_F_OPEN);
+        sem_post(&io_mutex);
+
         inode = inode_create(inumber);
 
         /* Add the inode into the active inode list */
@@ -180,6 +185,9 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
 
     /* It checks if the inode could not be found in the file table */
     if (!inode) {
+        io_fs_log(process->name, inumber, IO_LOG_FS_F_OPEN);
+        sem_post(&io_mutex);
+
         inode = inode_create(inumber);
 
         /* Add the inode into the active inode list */

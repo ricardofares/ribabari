@@ -231,6 +231,20 @@ typedef struct IoLogPrint {
     int duration;
 } io_log_print_t;
 
+typedef enum IoLogFileSystemFlag {
+    /* It indicates if the file associated */
+    /* with the inode's has received a */
+    /* disk read or write operation. */
+    IO_LOG_FS_READ = 1,
+    IO_LOG_FS_WRITE = 2,
+
+    /* It indicates if the file associated */
+    /* with the inode's number has been just */
+    /* opened, closed or none of them. */
+    IO_LOG_FS_F_OPEN = 4,
+    IO_LOG_FS_F_CLOSE = 8,
+} io_log_fs_flag_t;
+
 typedef struct IoLogFileSystem {
     /**
      * The name of the process which
@@ -251,7 +265,7 @@ typedef struct IoLogFileSystem {
      * the process had requested a
      * disk read or write operation.
      */
-    int read;
+    io_log_fs_flag_t opt;
 } io_log_fs_t;
 
 typedef struct IoLogDiskRequest {
@@ -313,7 +327,7 @@ void io_log_init();
  * the needed internal structures to perform
  * the log operation.
  */
-void io_fs_log(const char* process_name, const int inumber, const int read);
+void io_fs_log(const char* process_name, const int inumber, const io_log_fs_flag_t opt);
 
 /**
  * It creates an I/O disk log and signal the

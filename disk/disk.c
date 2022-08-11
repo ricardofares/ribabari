@@ -203,7 +203,8 @@ static void rw_disk_op_resolve(int track) {
             disk_log(disk_req->process->name, disk_req->process->id, track, disk_req->read, disk_req->turnaround);
             sem_post(&disk_mutex);
 
-            io_fs_log(disk_req->process->name, INODE_NUMBER(DISK_BLOCK(track)), disk_req->read);
+            io_fs_log(disk_req->process->name, INODE_NUMBER(DISK_BLOCK(track)),
+                      disk_req->read ? IO_LOG_FS_READ : IO_LOG_FS_WRITE);
             sem_post(&io_mutex);
 
             /* After perform the disk read/write operation */
