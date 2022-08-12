@@ -13,9 +13,9 @@ int main() {
     io_log_init();
     res_acq_log_init();
 
+    kernel_init();
     disk_init();
     cpu_init();
-    kernel_init();
 
     begin_terminal();
     return 0;
