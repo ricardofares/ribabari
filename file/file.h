@@ -241,6 +241,15 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block);
  */
 void fs_write_request(file_table_t* file_table, process_t* process, int block);
 
+/**
+ * It opens a file specified by the inode's number.
+ *
+ * @param file_table the file table
+ * @param owner the file's owner
+ * @param inumber the inode's number
+ */
+inode_t *fs_open_request(file_table_t *file_table, const char *owner, int inumber);
+
  /**
   * It closes a file specified by the inode's number.
   *

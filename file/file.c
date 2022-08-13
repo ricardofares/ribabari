@@ -143,13 +143,8 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
 
     /* It checks if there is no active inode in the file table with that inumber */
     if (!inode) {
-        io_fs_log(process->name, inumber, IO_LOG_FS_F_OPEN);
-        sem_post(&io_mutex);
-
-        inode = inode_create(inumber);
-
-        /* Add the inode into the active inode list */
-        list_add(file_table->ilist->inode_list, inode);
+        /* A open request is made, an inode for the file is returned */
+        inode = fs_open_request(file_table, process->name, inumber);
 
         /* Update the inode last modified field */
         time(&inode->last_modified);
@@ -192,13 +187,8 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
 
     /* It checks if the inode could not be found in the file table */
     if (!inode) {
-        io_fs_log(process->name, inumber, IO_LOG_FS_F_OPEN);
-        sem_post(&io_mutex);
-
-        inode = inode_create(inumber);
-
-        /* Add the inode into the active inode list */
-        list_add(file_table->ilist->inode_list, inode);
+        /* A open request is made, an inode for the file is returned */
+        inode = fs_open_request(file_table, process->name, inumber);
 
         time(&inode->last_accessed);
 
@@ -220,6 +210,25 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
     time(&inode->last_modified);
 
     LOG_FS_A("Process %s is writing at the inode %d.\n", process->name, inumber);
+}
+
+/**
+ * It opens a file specified by the inode's number.
+ *
+ * @param file_table the file table
+ * @param owner the file's owner
+ * @param inumber the inode's number
+ */
+inode_t *fs_open_request(file_table_t *file_table, const char *owner, int inumber) {
+    inode_t *inode = inode_create(inumber);
+
+    /* Add the inode into the active inode list */
+    list_add(file_table->ilist->inode_list, inode);
+
+    io_fs_log(owner, inumber, IO_LOG_FS_F_OPEN);
+    sem_post(&io_mutex);
+
+    return inode;
 }
 
 /**
