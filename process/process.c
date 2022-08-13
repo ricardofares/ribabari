@@ -117,7 +117,7 @@ void process_finish(process_t* proc) {
 
         /* Decrement the process count in the open files */
         FOREACH(proc->o_files, int) {
-            fs_handle_finish(&kernel->file_table, proc, it);
+            fs_close_request(&kernel->file_table, proc, it);
         }
 
         segment_free(&kernel->seg_table, proc->seg_id);
