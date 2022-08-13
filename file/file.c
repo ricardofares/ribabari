@@ -6,6 +6,14 @@
 
 #include "file.h"
 
+#if OS_DEBUG || OS_FS_DEBUG
+#define LOG_FS(fmt) printf(fmt)
+#define LOG_FS_A(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define LOG_FS(fmt)
+#define LOG_FS_A(fmt, ...)
+#endif // OS_DEBUG || OS_FS_DEBUG
+
 /* Inode Function Definitions */
 
 /**
@@ -145,9 +153,8 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
 
         /* Update the inode last modified field */
         time(&inode->last_modified);
-#if OS_FS_DEBUG
-        printf("An inode %d has been put as an active file by process %s (%d) from a read operation.\n", inumber, process->name, process->id);
-#endif // OS_FS_DEBUG
+
+        LOG_FS_A("An inode %d has been put as an active file by process %s (%d) from a read operation.\n", inumber, process->name, process->id);
     }
 
     /* It checks if the process has not before opened this file */
@@ -158,13 +165,13 @@ void fs_read_request(file_table_t* file_table, process_t* process, int block) {
         /* has this file opened */
         inode->o_count++;
 
-#if OS_FS_DEBUG
-        printf("Process %s is in its first time being activating the inode %d from a read operation.", process->name, inumber);
-#endif // OS_FS_DEBUG
+        LOG_FS_A("Process %s is in its first time being activating the inode %d from a read operation.\n", process->name, inumber);
     }
 
     /* Update the inode last accessed field */
     time(&inode->last_accessed);
+
+    LOG_FS_A("Process %s is reading from the inode %d.\n", process->name, inumber);
 }
 
 /**
@@ -194,9 +201,8 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
         list_add(file_table->ilist->inode_list, inode);
 
         time(&inode->last_accessed);
-#if OS_FS_DEBUG
-        printf("An inode %d has been put as an active file by process %s (%d) from a write operation.\n", inumber, process->name, process->id);
-#endif // OS_FS_DEBUG
+
+        LOG_FS_A("An inode %d has been put as an active file by process %s (%d) from a write operation.\n", inumber, process->name, process->id);
     }
 
     /* It checks if the process has not before opened this file */
@@ -207,17 +213,13 @@ void fs_write_request(file_table_t* file_table, process_t* process, int block) {
         /* has this file opened */
         inode->o_count++;
 
-#if OS_FS_DEBUG
-        printf("Process %s is in its first time being activating the inode %d from a write operation.", process->name, inumber);
-#endif // OS_FS_DEBUG
+        LOG_FS_A("Process %s is in its first time being activating the inode %d from a write operation.\n", process->name, inumber);
     }
 
     /* Update both access time fields */
     time(&inode->last_modified);
 
-#if OS_FS_DEBUG
-    printf("Process %s is writing at the inode %d.\n", process->name, inumber);
-#endif // OS_FS_DEBUG
+    LOG_FS_A("Process %s is writing at the inode %d.\n", process->name, inumber);
 }
 
 /**
