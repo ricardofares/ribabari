@@ -31,24 +31,39 @@
 /* File Description Definitions */
 
 typedef enum FilePermission {
-    FILE_READ_PERM = 1,
-    FILE_WRITE_PERM = 2,
-    FILE_EXECUTE_PERM = 4
+    /**
+     * File permission flags for
+     * controlling the file's
+     * owner access.
+     */
+    F_PERM_OWNER_R = (1 << 8),
+    F_PERM_OWNER_W = (1 << 7),
+    F_PERM_OWNER_X = (1 << 6),
+
+    /**
+     * File permission flags for
+     * controlling the file's
+     * group access.
+     */
+    F_PERM_GROUP_R = (1 << 5),
+    F_PERM_GROUP_W = (1 << 4),
+    F_PERM_GROUP_X = (1 << 3),
+
+    /**
+     * File permission flags for
+     * controlling the file's
+     * other access.
+     */
+    F_PERM_OTHER_R = (1 << 2),
+    F_PERM_OTHER_W = (1 << 1),
+    F_PERM_OTHER_X = (1 << 0),
 } file_perm_t;
 
-typedef struct FileDescriptor {
+typedef struct {
     /**
      * It represents the inode id.
      */
     int id;
-
-    /**
-     * If it is true, then this inode
-     * is representing a directory.
-     * Otherwise, it is representing
-     * a file.
-     */
-    int dir;
 
     /**
      * It holds an integer number indicating
@@ -58,10 +73,11 @@ typedef struct FileDescriptor {
     int o_count;
 
     /**
-     * It contains the access permissions
-     * read, write, execute etc.
+     * It contains the file mode that specifies
+     * the file's access control for the file's
+     * owner, owner's group and others.
      */
-    int acc_perm_flag;
+    short mode;
 
     /**
      * It contains the time when this

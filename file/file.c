@@ -40,7 +40,7 @@ inode_t* inode_create(int id) {
 
     inode->id = id;
     inode->o_count = 0;
-    inode->acc_perm_flag = FILE_READ_PERM | FILE_EXECUTE_PERM;
+    inode->mode = F_PERM_OWNER_R | F_PERM_OWNER_W | F_PERM_OWNER_X | F_PERM_OTHER_R | F_PERM_OTHER_W;
     inode->last_accessed = -1;
     inode->last_modified = -1;
 
