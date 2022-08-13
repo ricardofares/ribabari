@@ -4,6 +4,22 @@
 #include "../utils/math.h"
 #include "kernel.h"
 
+#if OS_DEBUG || OS_KERNEL_DEBUG
+#define LOG_KERNEL(fmt) printf(fmt)
+#define LOG_KERNEL_A(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define LOG_KERNEL(fmt)
+#define LOG_KERNEL_A(fmt, ...)
+#endif // OS_DEBUG || OS_KERNEL_DEBUG
+
+#if OS_DEBUG || OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG
+#define LOG_KERNEL_EVAL(fmt) printf(fmt)
+#define LOG_KERNEL_EVAL_A(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define LOG_KERNEL_EVAL(fmt)
+#define LOG_KERNEL_EVAL_A(fmt, ...)
+#endif // OS_DEBUG || OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG
+
 /* Internal Function Prototypes */
 
 /**
@@ -35,46 +51,25 @@ void kernel_init() {
         exit(0);
     }
 
-#if OS_KERNEL_DEBUG
-    printf("Kernel initialized.\n");
-#endif // OS_KERNEL_DEBUG
-
     kernel->proc_table = list_init();
     kernel->next_proc_id = 1; /* 0 is for the kernel */
-
-#if OS_KERNEL_DEBUG
-    printf("Process table initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("Process table initialized.\n");
 
     segment_table_init(&kernel->seg_table);
-
-#if OS_KERNEL_DEBUG
-    printf("Segment table initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("Segment table initialized.\n");
 
     scheduler_init(&kernel->scheduler);
-
-#if OS_KERNEL_DEBUG
-    printf("Scheduler initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("Scheduler initialized.\n");
 
     disk_scheduler_init(&kernel->disk_scheduler);
-
-#if OS_KERNEL_DEBUG
-    printf("Disk Scheduler initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("Disk Scheduler initialized.\n");
 
     semaphore_table_init(&kernel->sem_table);
-
-#if OS_KERNEL_DEBUG
-    printf("Semaphore table initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("Semaphore table initialized.\n");
 
     file_table_init(&kernel->file_table);
-
-#if OS_KERNEL_DEBUG
-    printf("File table initialized.\n");
-#endif // OS_KERNEL_DEBUG
+    LOG_KERNEL("File table initialized.\n");
+    LOG_KERNEL("Kernel initialized.\n");
 }
 
 /**
@@ -222,19 +217,16 @@ void interruptControl(kernel_function_t func, void *arg) {
 void eval(process_t* proc, instr_t* instr) {
     switch (instr->op) {
     case EXEC: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s will execute for %d u.t.\n", proc->name, instr->value);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s will execute for %d u.t.\n", proc->name, instr->value);
+
         proc->remaining = proc->remaining - instr->value;
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has finished its executing.\n", proc->name);
-#endif
+
+        LOG_KERNEL_EVAL_A("Process %s has finished its executing.\n", proc->name);
         break;
     }
     case SEM_P: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has requested for semaphore %s.\n", proc->name, instr->sem);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s has requested for semaphore %s.\n", proc->name, instr->sem);
+
         sysCall(SEMAPHORE_P, semaphore_find(&kernel->sem_table, instr->sem));
         /* It checks if the process has not been blocked */
         /* after a semaphore request */
@@ -243,31 +235,27 @@ void eval(process_t* proc, instr_t* instr) {
         break;
     }
     case SEM_V: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has released semaphore %s.\n", proc->name, instr->sem);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s has released semaphore %s.\n", proc->name, instr->sem);
+
         sysCall(SEMAPHORE_V, semaphore_find(&kernel->sem_table, instr->sem));
         proc->remaining = MAX(0, proc->remaining - 200);
         break;
     }
     case READ: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has requested a read operation at track %d.\n", proc->name, instr->value);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s has requested a read operation at track %d.\n", proc->name, instr->value);
+
         sysCall(DISK_READ_REQUEST, instr->value);
         break;
     }
     case WRITE: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has requested a write operation at track %d.\n", proc->name, instr->value);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s has requested a write operation at track %d.\n", proc->name, instr->value);
+
         sysCall(DISK_WRITE_REQUEST, instr->value);
         break;
     }
     case PRINT: {
-#if (OS_KERNEL_DEBUG || OS_KERNEL_EVAL_DEBUG)
-        printf("Process %s has requested a print operation for %d u.t.\n", proc->name, instr->value);
-#endif // OS_EVAL_DEBUG
+        LOG_KERNEL_EVAL_A("Process %s has requested a print operation for %d u.t.\n", proc->name, instr->value);
+
         sysCall(PRINT_REQUEST, instr->value);
         break;
     }
