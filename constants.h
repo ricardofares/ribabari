@@ -5,6 +5,10 @@
  * Debug Options
  */
 
+/* General Debug Options */
+
+#define OS_DEBUG 0
+
 /* Kernel Debug Options */
 
 #define OS_KERNEL_DEBUG 0
