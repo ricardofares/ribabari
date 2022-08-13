@@ -10,6 +10,14 @@
 #include "../kernel/kernel.h"
 #endif // OS_SCHED_KERNEL
 
+#if OS_DEBUG || OS_PROCESS_DEBUG
+#define LOG_PROC(fmt) printf(fmt)
+#define LOG_PROC_A(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define LOG_PROC(fmt)
+#define LOG_PROC_A(fmt, ...)
+#endif // OS_DEBUG || OS_PROCESS_DEBUG
+
 /* Internal Process Function Prototypes */
 
 /**
@@ -86,9 +94,7 @@ void process_create(const char* filepath) {
 
     sysCall(MEM_LOAD_REQ, (void *) &memory_request);
 
-#if OS_PROCESS_DEBUG
-    printf("Process %s (%d) added into the process table.\n", proc->name, proc->id);
-#endif // OS_PROCESS_DEBUG
+    LOG_PROC_A("Process %s (%d) added into the process table.\n", proc->name, proc->id);
 }
 
 /**
@@ -126,9 +132,7 @@ void process_finish(process_t* proc) {
         else if ((sched_proc_node = list_search(kernel->scheduler.blocked_queue->queue, proc, proc_cmp)))
             list_remove_node(kernel->scheduler.blocked_queue->queue, sched_proc_node);
 
-#if OS_PROCESS_DEBUG
-        printf("Process %s has been finished.\n", proc->name);
-#endif // OS_PROCESS_DEBUG
+        LOG_PROC_A("Process %s has been finished.\n", proc->name);
 
         /* It frees the process allocated memory */
         free(proc->name);
