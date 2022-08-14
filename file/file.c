@@ -43,6 +43,7 @@ inode_t* inode_create(int id) {
     inode->mode = F_PERM_OWNER_R | F_PERM_OWNER_W | F_PERM_OWNER_X | F_PERM_OTHER_R | F_PERM_OTHER_W;
     inode->last_accessed = -1;
     inode->last_modified = -1;
+    inode->size = (100 * (1 + (rand() % 10))) + (rand() % RAND_MAX);
 
     return inode;
 }
