@@ -3,7 +3,7 @@
 
 #include <semaphore.h>
 
-#include "../utils/list.h"
+#include "../tools/list.h"
 #include "../process/process.h"
 
 typedef struct Semaphore {

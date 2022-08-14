@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#include "../utils/list.h"
+#include "../tools/list.h"
 
 #define FETCH_INSTR_ADDR(x) ((x)->pc++)
 

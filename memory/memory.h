@@ -7,7 +7,7 @@
 #define PAGE_NUMBER(x) ((x) / INSTRUCTIONS_PER_PAGE)
 #define PAGE_OFFSET(x) ((x) % INSTRUCTIONS_PER_PAGE)
 
-#include "../utils/list.h"
+#include "../tools/list.h"
 #include "../process/instruction.h"
 #include "../process/process.h"
 #include "../semaphore/semaphore.h"

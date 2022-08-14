@@ -8,11 +8,11 @@ include_directories(utils)
 
 add_executable(so_project
         main.c
-        constants.h
+        tools/constants.h
         cpu/cpu.c
         cpu/cpu.h
-        utils/list.c
-        utils/list.h
+        tools/list.c
+        tools/list.h
         kernel/kernel.c
         kernel/kernel.h
         memory/memory.c
@@ -33,5 +33,7 @@ add_executable(so_project
         print/print.h
         file/file.c
         file/file.h
-        utils/math.h
+        tools/math.h
+        terminal/log.h
+        terminal/log.c
         )

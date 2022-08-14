@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../constants.h"
+#include "../tools/constants.h"
 #include "../terminal/log.h"
 
 #include "file.h"

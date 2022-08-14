@@ -1,7 +1,7 @@
 #ifndef OS_PROJECT_TERMINAL_H
 #define OS_PROJECT_TERMINAL_H
 
-#include "../utils/math.h"
+#include "../tools/math.h"
 #include "../memory/memory.h"
 
 #include "log.h"

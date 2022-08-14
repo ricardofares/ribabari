@@ -25,7 +25,7 @@
  */
 #define INVERSE_INODE_NUMBER(x) (((x) - 5) / 948)
 
-#include "../utils/list.h"
+#include "../tools/list.h"
 #include "../process/process.h"
 
 /* File Description Definitions */

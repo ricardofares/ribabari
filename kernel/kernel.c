@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "../constants.h"
-#include "../utils/math.h"
+#include "../tools/constants.h"
+#include "../tools/math.h"
 #include "kernel.h"
 
 #if OS_DEBUG || OS_KERNEL_DEBUG

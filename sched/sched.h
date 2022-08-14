@@ -1,7 +1,7 @@
 #ifndef OS_PROJECT_SCHED_H
 #define OS_PROJECT_SCHED_H
 
-#include "../utils/list.h"
+#include "../tools/list.h"
 #include "../process/process.h"
 
 /* Scheduler Structures Definitions */

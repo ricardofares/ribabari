@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../utils/math.h"
+#include "../tools/math.h"
 #include "sched.h"
 
 #define SCHED_HIGH_QUEUE_QUANTUM (1000)
