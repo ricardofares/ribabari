@@ -48,21 +48,6 @@ inode_t* inode_create(int id) {
     return inode;
 }
 
-/**
- * It returns 1 if both inode has the same
- * inode number. Otherwise, 0 is returned.
- *
- * @param i1 the first inode
- * @param i2 the second inode
- *
- * @return 1 if both inode has the same
- *         inode number; otherwise, 0
- *         is returned.
- */
-int inode_cmp(void* i1, void* i2) {
-    return ((inode_t *) i1)->id == ((inode_t *) i2)->id;
-}
-
 /* Ilist Function Prototypes */
 
 /**
