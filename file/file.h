@@ -159,19 +159,6 @@ typedef struct FileSystemOperationRequest {
  */
 inode_t* inode_create(int id);
 
-/**
- * It returns 1 if both inode has the same
- * inode number. Otherwise, 0 is returned.
- *
- * @param i1 the first inode
- * @param i2 the second inode
- *
- * @return 1 if both inode has the same
- *         inode number; otherwise, 0
- *         is returned.
- */
-int inode_cmp(void* i1, void* i2);
-
 /* Ilist Function Prototypes */
 
 /**
