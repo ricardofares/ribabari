@@ -1,5 +1,6 @@
 #include <math.h>
 
+#include "../tools/math.h"
 #include "memory.h"
 
 /* Segment Internal Function Definitions */
@@ -67,8 +68,9 @@ static void segment_add(segment_table_t* seg_table, segment_t* seg) {
  * @param seg_table the segment table
  * @param seg the segment containing the pages to
  *            to be loaded into the memory
+ * @return the amount of memory freed by unused pages.
  */
-static void memory_page_swap(segment_table_t* seg_table, segment_t* seg) {
+static int memory_page_swap(segment_table_t* seg_table, segment_t* seg) {
     int i;
     int freed = 0;
 
@@ -86,6 +88,8 @@ static void memory_page_swap(segment_table_t* seg_table, segment_t* seg) {
                 break;
         }
     }
+
+    return freed;
 }
 
 /* Segment Table Function Definitions */
@@ -152,7 +156,9 @@ void segment_free(segment_table_t* seg_table, int sid) {
 
     segment_t* seg = (segment_t *)seg_node->content;
 
-    seg_table->remaining += seg->size;
+    /* It sums the freed memory to the amount of */
+    /* addressable memory space */
+    seg_table->remaining = MIN(MAX_MEM_SIZE, seg_table->remaining + seg->size);
 
     free(seg->page_table);
     free(seg);
@@ -185,11 +191,17 @@ void mem_req_load(memory_request_t* req, segment_table_t* seg_table) {
 
     const int new_remaining = seg_table->remaining - seg->size;
 
-    /* If the memory has available space to allocate the segment */
-    /* then update the remaining space */
-    if (new_remaining >= 0)
-        seg_table->remaining = new_remaining;
-    else memory_page_swap(seg_table, seg);
+    /* Update the remaining addressable memory space */
+    seg_table->remaining = MAX(0, new_remaining);
+
+    /* If checks if the request memory segment could not */
+    /* be allocated into the memory space because this */
+    /* does not have enough. Therefore, a page swapping */
+    /* must occur */
+    if (new_remaining < 0) {
+        /* Invoke the page swapping */
+        seg_table->remaining += memory_page_swap(seg_table, seg);
+    }
 
     /* Populate the segment's page with the program code */
     segment_populate(seg, req->code, req->proc->code_len);

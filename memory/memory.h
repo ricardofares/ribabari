@@ -1,12 +1,6 @@
 #ifndef OS_PROJECT_MEMORY_H
 #define OS_PROJECT_MEMORY_H
 
-#define INSTRUCTIONS_PER_PAGE (256)
-#define KILOBYTE (1024)
-#define PAGE_SIZE (4 * KILOBYTE)
-#define PAGE_NUMBER(x) ((x) / INSTRUCTIONS_PER_PAGE)
-#define PAGE_OFFSET(x) ((x) % INSTRUCTIONS_PER_PAGE)
-
 #include "../tools/list.h"
 #include "../process/instruction.h"
 #include "../process/process.h"
@@ -14,6 +8,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#define KILOBYTE (1024)
+#define MEGABYTE (1024 * KILOBYTE)
+#define GIGABYTE (1024 * MEGABYTE)
+
+#define MAX_MEM_SIZE (1 * GIGABYTE)
+
+#define INSTRUCTIONS_PER_PAGE (256)
+#define PAGE_SIZE (4 * KILOBYTE)
+#define PAGE_NUMBER(x) ((x) / INSTRUCTIONS_PER_PAGE)
+#define PAGE_OFFSET(x) ((x) % INSTRUCTIONS_PER_PAGE)
 
 typedef struct Page {
     instr_t code[INSTRUCTIONS_PER_PAGE];
