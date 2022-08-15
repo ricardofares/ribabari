@@ -520,7 +520,7 @@ void refresh_memory_title_window() {
 
     wclear(memory_window->title_window);
     wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %4dkb LSS: %dkb",
+    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %d Kbytes LSS: %d Kbytes",
               kernel->seg_table.remaining >> 10, max_seg_size() >> 10);
     mvwprintw(memory_window->title_window, 1,
               (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2), "%s", usage_buffer);
@@ -710,7 +710,7 @@ void refresh_disk_title_window() {
         = sprintf(disk_velocity, "AngV: %d rpm", disk_general_log->angular_v);
     sprintf(disk_track, "Track: %d Requests: %d", disk_general_log->curr_track, disk_general_log->pending_requests_size);
     int disk_qtd_size
-        = sprintf(disk_quantity, "R: %d    W: %d",
+        = sprintf(disk_quantity, "R: %d W: %d",
                   disk_general_log->r_req_count, disk_general_log->w_req_count);
 
     const char title[] = "Disk View";
@@ -781,7 +781,8 @@ _Noreturn void* refresh_disk_log() {
 
 void refresh_res_acq_title_window() {
     char* left_title_string = (char*)malloc(sizeof(char) * 16);
-    sprintf(left_title_string, "Semaphore Count: %d", kernel->sem_table.len);
+    sprintf(left_title_string, "Semaphore Count: %d Blocked: %d",
+            kernel->sem_table.len, sem_blocked_count());
 
     const char title[] = "Resource Acquisition View";
     wclear(res_acq_window->title_window);
@@ -883,17 +884,24 @@ log_window_t* init_io_log() {
 }
 
 void refresh_io_title_window() {
+    char *print_buffer = (char *)malloc(sizeof(char) * 32);
+    const int print_size = sprintf(print_buffer, "Print: %d u.t.", io_general_log->p_time);
+
     wclear(io_window->title_window);
     wattron(io_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(io_window->title_window, 1, 1, "R: %ld bytes W: %ld bytes Print: %d u.t.",
-              io_general_log->r_bytes, io_general_log->w_bytes, io_general_log->p_time);
+    mvwprintw(io_window->title_window, 1, 1, "R: %ld bytes W: %ld bytes",
+              io_general_log->r_bytes, io_general_log->w_bytes);
 
     const char title[] = "I/O View";
 
     wattron(io_window->title_window, COLOR_PAIR(1) | A_BOLD);
     mvwprintw(io_window->title_window, 1,
+              (COLS / 2) - print_size - 2, "%s", print_buffer);
+    mvwprintw(io_window->title_window, 1,
               (COLS / 2 - (int)strlen(title)) / 2, title);
     wattron(io_window->title_window, COLOR_PAIR(3) | A_BOLD);
+
+    free(print_buffer);
 }
 
 _Noreturn void* refresh_io_log() {
@@ -1057,3 +1065,23 @@ static process_t* get_process_sid(const int sid) {
     return NULL;
 }
 
+/**
+ * It returns the count of blocked processes
+ * waiting for a semaphore to be available to
+ * acquire. Note, this count is not for a
+ * specific semaphore, but for all of them.
+ *
+ * @return the count of blocked processes
+ *         waiting for a semaphore to be
+ *         available to acquire.
+ */
+static int sem_blocked_count() {
+    const semaphore_table_t *sem_table = &kernel->sem_table;
+    const semaphore_t *sem;
+    int count = 0;
+
+    for (sem = sem_table->table; sem < &sem_table->table[sem_table->len]; sem++)
+        count += sem->waiters->size;
+
+    return count;
+}

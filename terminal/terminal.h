@@ -146,5 +146,17 @@ static int max_seg_size();
  */
 static int page_inuse_index(const segment_t* segment);
 
+/**
+ * It returns the count of blocked processes
+ * waiting for a semaphore to be available to
+ * acquire. Note, this count is not for a
+ * specific semaphore, but for all of them.
+ *
+ * @return the count of blocked processes
+ *         waiting for a semaphore to be
+ *         available to acquire.
+ */
+static int sem_blocked_count();
+
 #endif // OS_PROJECT_TERMINAL_H
 
