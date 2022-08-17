@@ -25,13 +25,12 @@ list_t* res_acq_log_list;
 disk_log_t* disk_general_log;
 io_log_t* io_general_log;
 
-log_window_t* process_window;
-log_window_t* memory_window;
-log_window_t* disk_window;
-log_window_t* io_window;
-menu_window_t* menu_window;
-
-log_window_t* res_acq_window;
+win_t* process_window;
+win_t* memory_window;
+win_t* disk_window;
+win_t* io_window;
+win_t* menu_window;
+win_t* res_acq_window;
 
 int r_view = 0;
 
@@ -110,10 +109,10 @@ _Noreturn void* refresh_logs() {
             pthread_mutex_unlock(&print_mutex);
         }
 
-        wattrset(menu_window->title_win, COLOR_PAIR(3));
-        box(menu_window->title_win, 0, 0);
-        box(menu_window->main_win, 0, 0);
-        wrefresh(menu_window->main_win);
+        wattrset(menu_window->title_window, COLOR_PAIR(3));
+        box(menu_window->title_window, 0, 0);
+        box(menu_window->main_window, 0, 0);
+        wrefresh(menu_window->main_window);
 
         pthread_mutex_lock(&print_mutex);
         refresh_disk_title_window();
@@ -196,8 +195,8 @@ menu_t* create_menu(int choices_count,
     set_menu_back(menu->curses_menu, COLOR_PAIR(1));
     set_menu_mark(menu->curses_menu, "* ");
 
-    set_menu_win(menu->curses_menu, menu->menu_window->main_win);
-    set_menu_sub(menu->curses_menu, menu->menu_window->items_win);
+    set_menu_win(menu->curses_menu, menu->menu_window->main_window);
+    set_menu_sub(menu->curses_menu, menu->menu_window->text_window);
 
     return menu;
 }
@@ -210,7 +209,7 @@ void title_print(WINDOW* title_win, int win_width, const char* title) {
     wattroff(title_win, A_BOLD | COLOR_PAIR(1));
 }
 
-menu_window_t* init_menu_window(const menu_t* menu) {
+win_t* init_menu_window(const menu_t* menu) {
     WINDOW* main_win = newwin(menu->height, menu->width, 0, 0);
 
     const int title_height = 3;
@@ -230,16 +229,16 @@ menu_window_t* init_menu_window(const menu_t* menu) {
     title_print(title_win, (menu->width - (int)strlen(menu->title)) / 2,
                 menu->title);
 
-    menu_window_t* new_menu_window
-        = (menu_window_t*)malloc(sizeof(menu_window_t));
-    (*new_menu_window) = (menu_window_t) {
-        .main_win = main_win,
-        .title_win = title_win,
-        .items_win = choice_win,
+    win_t* new_menu_window
+        = (win_t*)malloc(sizeof(win_t));
+    (*new_menu_window) = (win_t) {
+        .main_window = main_win,
+        .title_window = title_win,
+        .text_window = choice_win,
     };
 
     // For using the UP/DOWN key
-    keypad(new_menu_window->main_win, TRUE);
+    keypad(new_menu_window->main_window, TRUE);
 
     return new_menu_window;
 }
@@ -267,7 +266,7 @@ void init_screen() {
 
 void menu_loop(menu_t* menu, void (*func)(int)) {
     MENU* curses_menu = menu->curses_menu;
-    WINDOW* main_window = menu->menu_window->main_win;
+    WINDOW* main_window = menu->menu_window->main_window;
     int c;
 
     while ((c = wgetch(main_window))) {
@@ -290,7 +289,7 @@ void menu_loop(menu_t* menu, void (*func)(int)) {
                     }
 
                     if (func) {
-                        wrefresh(menu->menu_window->main_win);
+                        wrefresh(menu->menu_window->main_window);
                         func(type);
                     }
 
@@ -304,13 +303,13 @@ void menu_loop(menu_t* menu, void (*func)(int)) {
 
 void start_menu_and_loop(menu_t* menu) {
     MENU* curses_menu = menu->curses_menu;
-    //    menu_window_t* menu_window = menu->menu_window;
+    //    win_t* menu_window = menu->menu_window;
     refresh();
 
-    wattrset(menu->menu_window->items_win, COLOR_PAIR(3));
+    wattrset(menu->menu_window->text_window, COLOR_PAIR(3));
 
     post_menu(curses_menu);
-    wrefresh(menu_window->main_win);
+    wrefresh(menu_window->main_window);
 
     pthread_t refresh_thread;
     pthread_create(&refresh_thread, NULL, refresh_logs, NULL);
@@ -340,13 +339,13 @@ void delete_menu(menu_t* menu) {
     free(menu);
 }
 
-void free_menu_window(menu_window_t* window) {
-    delwin(window->items_win);
-    delwin(window->title_win);
-    delwin(window->main_win);
+void free_menu_window(win_t* window) {
+    delwin(window->text_window);
+    delwin(window->title_window);
+    delwin(window->main_window);
 }
 
-void input_refresh(io_window_t* input_win) {
+void input_refresh(win_t* input_win) {
     //    refresh();
     wrefresh(input_win->main_window);
     wrefresh(input_win->text_window);
@@ -354,7 +353,7 @@ void input_refresh(io_window_t* input_win) {
     //    refresh();
 }
 
-void del_io_window(io_window_t* input_win) {
+void del_io_window(win_t* input_win) {
     delwin(input_win->text_window);
     delwin(input_win->title_window);
 
@@ -367,7 +366,7 @@ void del_io_window(io_window_t* input_win) {
 char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size) {
     pthread_mutex_lock(&refresh_mutex);
-    io_window_t io_win;
+    win_t io_win;
     echo();
 
     if (coordinates.begin_y < 0) {
@@ -408,7 +407,7 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
 
 void print_with_window(char* string, char* title, int y, int x) {
 
-    io_window_t io_win;
+    win_t io_win;
 
     int string_len = (int)strlen(string);
     int title_len = (int)strlen(title);
@@ -581,7 +580,7 @@ _Noreturn void* refresh_memory_log() {
     }
 }
 
-log_window_t* init_process_log() {
+win_t* init_process_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -599,8 +598,8 @@ log_window_t* init_process_log() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    log_window_t* log_window = malloc(sizeof(log_window_t));
-    (*log_window) = (log_window_t) {
+    win_t* log_window = malloc(sizeof(win_t));
+    (*log_window) = (win_t) {
         .main_window = main_window,
         .text_window = text_window,
         .title_window = title_window,
@@ -609,7 +608,7 @@ log_window_t* init_process_log() {
     return log_window;
 }
 
-log_window_t* init_memory_log() {
+win_t* init_memory_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -626,8 +625,8 @@ log_window_t* init_memory_log() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    log_window_t* log_window = malloc(sizeof(log_window_t));
-    (*log_window) = (log_window_t) {
+    win_t* log_window = malloc(sizeof(win_t));
+    (*log_window) = (win_t) {
         .main_window = main_window,
         .text_window = text_window,
         .title_window = title_window,
@@ -636,7 +635,7 @@ log_window_t* init_memory_log() {
     return log_window;
 }
 
-log_window_t* init_disk_log() {
+win_t* init_disk_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -656,8 +655,8 @@ log_window_t* init_disk_log() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    log_window_t* log_window = malloc(sizeof(log_window_t));
-    (*log_window) = (log_window_t) {
+    win_t* log_window = malloc(sizeof(win_t));
+    (*log_window) = (win_t) {
         .main_window = main_window,
         .text_window = text_window,
         .title_window = title_window,
@@ -666,7 +665,7 @@ log_window_t* init_disk_log() {
     return log_window;
 }
 
-log_window_t* init_res_acq_log() {
+win_t* init_res_acq_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -684,8 +683,8 @@ log_window_t* init_res_acq_log() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    log_window_t* log_window = malloc(sizeof(log_window_t));
-    (*log_window) = (log_window_t) {
+    win_t* log_window = malloc(sizeof(win_t));
+    (*log_window) = (win_t) {
             .main_window = main_window,
             .text_window = text_window,
             .title_window = title_window,
@@ -852,7 +851,7 @@ _Noreturn void* refresh_res_acq_log() {
     }
 }
 
-log_window_t* init_io_log() {
+win_t* init_io_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -872,8 +871,8 @@ log_window_t* init_io_log() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    log_window_t* log_window = malloc(sizeof(log_window_t));
-    (*log_window) = (log_window_t) {
+    win_t* log_window = malloc(sizeof(win_t));
+    (*log_window) = (win_t) {
         .main_window = main_window,
         .text_window = text_window,
         .title_window = title_window,

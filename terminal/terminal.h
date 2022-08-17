@@ -20,16 +20,16 @@
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
 
+typedef struct {
+    WINDOW *main_window;
+    WINDOW *text_window;
+    WINDOW *title_window;
+} win_t;
+
 typedef enum main_menu_choices {
     CREATE,
     TOGGLE_RESOURCE_VIEW
 } main_menu_choices;
-
-typedef struct menu_window_t {
-    WINDOW* main_win;
-    WINDOW* title_win;
-    WINDOW* items_win;
-} menu_window_t;
 
 typedef struct menu_choice_t {
     const char* text;
@@ -44,7 +44,7 @@ typedef struct menu_t {
     int width;
     MENU* curses_menu;
     ITEM** items;
-    menu_window_t* menu_window;
+    win_t* menu_window;
 } menu_t;
 
 typedef struct {
@@ -52,17 +52,6 @@ typedef struct {
     int begin_x;
 } coordinates_t;
 
-typedef struct {
-    WINDOW* main_window;
-    WINDOW* text_window;
-    WINDOW* title_window;
-} io_window_t;
-
-typedef struct {
-    WINDOW* main_window;
-    WINDOW* text_window;
-    WINDOW* title_window;
-} log_window_t;
 
 #define MAIN_MENU(M)                                                           \
     M("Process Create", CREATE)                                                \
@@ -81,10 +70,10 @@ menu_t* create_menu(int choices_count,
                     const char* title);
 int get_type_from_string(menu_t* menu, const char* buffer);
 
-menu_window_t* init_menu_window(const menu_t* menu);
+win_t* init_menu_window(const menu_t* menu);
 int begin_terminal();
 void delete_menu(menu_t* menu);
-void free_menu_window(menu_window_t* window);
+void free_menu_window(win_t* window);
 
 char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
@@ -97,11 +86,11 @@ _Noreturn void* refresh_io_log();
 _Noreturn void* refresh_logs();
 _Noreturn void* refresh_res_acq_log();
 
-log_window_t* init_io_log();
-log_window_t* init_process_log();
-log_window_t* init_memory_log();
-log_window_t* init_disk_log();
-log_window_t* init_res_acq_log();
+win_t* init_io_log();
+win_t* init_process_log();
+win_t* init_memory_log();
+win_t* init_disk_log();
+win_t* init_res_acq_log();
 
 void refresh_disk_title_window();
 void refresh_memory_title_window();
