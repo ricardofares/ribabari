@@ -4,16 +4,20 @@ sint1
 4
 s t
 
-read 20
+exec 40
+P(s)
+exec 800
+read 45
 exec 400
 print 100
-read 30
+read 15
 exec 500
+V(s)
 P(s)
 exec 200
 P(t)
 exec 20000
-write 20
+write 54
 print 150
 V(t)
 V(s)

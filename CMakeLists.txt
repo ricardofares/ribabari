@@ -8,7 +8,6 @@ include_directories(utils)
 
 add_executable(so_project
         main.c
-        tools/constants.h
         cpu/cpu.c
         cpu/cpu.h
         tools/list.c
@@ -27,13 +26,14 @@ add_executable(so_project
         semaphore/semaphore.h
         disk/disk.c
         disk/disk.h
-        terminal/terminal.h
         terminal/terminal.c
+        terminal/terminal.h
         print/print.c
         print/print.h
         file/file.c
         file/file.h
         tools/math.h
-        terminal/log.h
         terminal/log.c
+        terminal/log.h
+        tools/ostools.h
         )

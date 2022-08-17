@@ -5,15 +5,15 @@ sint4
 s t
 
 exec 1000
-read 20
+read 54
 exec 400
-read 30
+read 94
 exec 500
 P(s)
 exec 200
 P(t)
 exec 20000
-write 20
+write 195
 print 150
 V(t)
 V(s)

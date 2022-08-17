@@ -508,73 +508,6 @@ _Noreturn void* refresh_process_log() {
     }
 }
 
-FWIN_REFRESH_TITLE(memory) {
-    const char title[] = "Memory View";
-    const int wlen = sprintf(win_mem->buffer_rs, "LSS: %d Kbytes Use: %.1lf%%", max_seg_size() >> 10,
-                             (1.0 - (double) kernel->seg_table.remaining / GIGABYTE) * 100.0);
-
-    wclear(win_mem->win.title_window);
-    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(win_mem->win.title_window, 1, 1, "Remaining: %d Kbytes", kernel->seg_table.remaining >> 10);
-    mvwprintw(win_mem->win.title_window, 1, (COLS >> 1) - wlen - (BOX_SIZE >> 1), "%s", win_mem->buffer_rs);
-    wattron(win_mem->win.title_window, COLOR_PAIR(3));
-
-    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(win_mem->win.title_window, 1,
-              ((COLS >> 1) - ((int)strlen(title)) >> 1), title);
-    wattron(win_mem->win.title_window, COLOR_PAIR(3) | A_BOLD);
-}
-
-_Noreturn void* refresh_memory_log() {
-    list_t* seg_list = kernel->seg_table.seg_list;
-    while (1) {
-
-        sem_wait(&mem_mutex);
-        wmove(win_mem->win.text_window, 0, 0);
-        wclear(win_mem->win.text_window);
-
-        pthread_mutex_lock(&print_mutex);
-
-        WIN_REFRESH_TITLE(memory);
-
-        for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
-            const segment_t* seg = ((segment_t*)i->content);
-            char* buffer = malloc(100);
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(win_mem->win.text_window, "ID: ");
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
-            snprintf(buffer, 100, "%2d, ", seg->id);
-            wprintw(win_mem->win.text_window, "%s", buffer);
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(win_mem->win.text_window, "SegSize: ");
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
-            snprintf(buffer, 100, "%7d kb, ", seg->size / 1024);
-            wprintw(win_mem->win.text_window, "%s", buffer);
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(win_mem->win.text_window, "Pages: ");
-
-            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
-            const int p_inuse_index = page_inuse_index(seg);
-            if (p_inuse_index == -1)
-                snprintf(buffer, 100, "%d available.\n", seg->page_qtd);
-            else
-                snprintf(buffer, 100, "using %d of %d.\n", p_inuse_index,
-                         seg->page_qtd);
-            wprintw(win_mem->win.text_window, "%s", buffer);
-
-            // wattroff(memory_window->text_window, COLOR_PAIR(2));
-
-            WIN_REFRESH_TITLE(memory);
-        }
-        pthread_mutex_unlock(&print_mutex);
-    }
-}
-
 win_t* init_process_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
@@ -988,6 +921,90 @@ _Noreturn void* refresh_io_log() {
         i = i->next;
     }
 }
+
+/*
+ * Memory Window
+ */
+
+/**
+ * It refreshes the memory window title, such that
+ * the information displayed together the title
+ * will be updated as well.
+ */
+FWIN_REFRESH_TITLE(memory) {
+    const char title[] = "Memory View";
+    const int wlen = sprintf(win_mem->buffer_rs, "LSS: %d Kbytes Use: %.1lf%%", max_seg_size() >> 10,
+                             (1.0 - (double) kernel->seg_table.remaining / GIGABYTE) * 100.0);
+
+    wclear(win_mem->win.title_window);
+    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(win_mem->win.title_window, 1, 1, "Remaining: %d Kbytes", kernel->seg_table.remaining >> 10);
+    mvwprintw(win_mem->win.title_window, 1, (COLS >> 1) - wlen - (BOX_SIZE >> 1), "%s", win_mem->buffer_rs);
+    wattron(win_mem->win.title_window, COLOR_PAIR(3));
+
+    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(win_mem->win.title_window, 1,
+              ((COLS >> 1) - ((int)strlen(title)) >> 1), title);
+    wattron(win_mem->win.title_window, COLOR_PAIR(3) | A_BOLD);
+}
+
+/**
+ * Thread Function:
+ *  It refreshes the memory window completely, that is,
+ *  the title and the text information will be updated.
+ */
+FWIN_REFRESH(memory) {
+    char *const buffer = (char *)malloc(sizeof(char) * 100);
+    const list_t *seg_list = kernel->seg_table.seg_list;
+
+    INFINITE_LOOP {
+        sem_wait(&mem_mutex);
+
+        wmove(win_mem->win.text_window, 0, 0);
+        wclear(win_mem->win.text_window);
+
+        pthread_mutex_lock(&print_mutex);
+
+        /* Refresh the memory window title */
+        WIN_REFRESH_TITLE(memory);
+
+        FOREACH(kernel->seg_table.seg_list, segment_t *) {
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "ID: ");
+
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            snprintf(buffer, 100, "%2d, ", it->id);
+            wprintw(win_mem->win.text_window, "%s", buffer);
+
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "SegSize: ");
+
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            snprintf(buffer, 100, "%7d kb, ", it->size >> 10);
+            wprintw(win_mem->win.text_window, "%s", buffer);
+
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "Pages: ");
+
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            const int p_inuse_index = page_inuse_index(it);
+            if (p_inuse_index == -1)
+                snprintf(buffer, 100, "%d available.\n", it->page_qtd);
+            else
+                snprintf(buffer, 100, "using %d of %d.\n", p_inuse_index,
+                         it->page_qtd);
+            wprintw(win_mem->win.text_window, "%s", buffer);
+        }
+
+        pthread_mutex_unlock(&print_mutex);
+    }
+
+    /* This statement is here just to ensure that if some additional code is */
+    /* added later amd make the flux gets out of the infinite loop sometime, */
+    /* then the buffer is freed and no memory is leaked. */
+    free(buffer);
+}
+
 
 /* Internal Terminal Function Definitions */
 

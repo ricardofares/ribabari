@@ -4,12 +4,14 @@ sint3
 8
 s t
 
-exec 1000
+exec 200
+P(s)
 print 10
 read 20
 exec 400
 read 30
 exec 500
+V(s)
 P(s)
 exec 200
 P(t)

@@ -31,6 +31,9 @@
 #undef WIN_MEM_BUFFER_RS_SIZE
 #define WIN_MEM_BUFFER_RS_SIZE (64)
 
+#undef INFINITE_LOOP
+#define INFINITE_LOOP while (1)
+
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
 
