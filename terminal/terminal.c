@@ -26,11 +26,12 @@ disk_log_t* disk_general_log;
 io_log_t* io_general_log;
 
 win_t* process_window;
-win_mem_t* win_mem;
-win_t* disk_window;
 win_t* io_window;
 win_t* menu_window;
 win_t* res_acq_window;
+
+win_memory_t *win_mem;
+win_disk_t *win_disk;
 
 int r_view = 0;
 
@@ -83,10 +84,10 @@ _Noreturn void* refresh_logs() {
 
         refresh();
 
-	wattrset(disk_window->title_window, COLOR_PAIR(3));
-        box(disk_window->title_window, 0, 0);
-        box(disk_window->main_window, 0, 0);
-        wrefresh(disk_window->main_window);
+	    wattrset(win_disk->win.title_window, COLOR_PAIR(3));
+        box(win_disk->win.title_window, 0, 0);
+        box(win_disk->win.main_window, 0, 0);
+        wrefresh(win_disk->win.main_window);
 
         box(process_window->title_window, 0, 0);
         box(process_window->main_window, 0, 0);
@@ -115,7 +116,7 @@ _Noreturn void* refresh_logs() {
         wrefresh(menu_window->main_window);
 
         pthread_mutex_lock(&print_mutex);
-        refresh_disk_title_window();
+        WIN_REFRESH_TITLE(disk);
         pthread_mutex_unlock(&print_mutex);
 
         wattrset(io_window->title_window, COLOR_PAIR(3));
@@ -146,10 +147,10 @@ int begin_terminal() {
     process_window = init_process_log();
     pthread_create(&log_thread, NULL, refresh_process_log, NULL);
 
-    win_mem = win_mem_create();
+    win_mem = WIN_CREATE(memory);
     pthread_create(&memory_thread, NULL, refresh_memory_log, NULL);
 
-    disk_window = init_disk_log();
+    win_disk = WIN_CREATE(disk);
     pthread_create(&disk_thread, NULL, refresh_disk_log, NULL);
 
     io_window = init_io_log();
@@ -536,7 +537,7 @@ win_t* init_process_log() {
     return log_window;
 }
 
-win_mem_t *win_mem_create() {
+FWIN_CREATE(memory) {
     const char title[] = "Memory View";
     const int main_height = LINES >> 1;
     const int main_width = COLS >> 1;
@@ -553,7 +554,7 @@ win_mem_t *win_mem_create() {
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    win_mem_t *win = (win_mem_t *)malloc(sizeof(win_mem_t));
+    win_memory_t *win = (win_memory_t *)malloc(sizeof(win_memory_t));
     win->win.main_window = main_window;
     win->win.text_window = text_window;
     win->win.title_window = title_window;
@@ -562,7 +563,8 @@ win_mem_t *win_mem_create() {
     return win;
 }
 
-win_t* init_disk_log() {
+FWIN_CREATE(disk) {
+    const char title[] = "Disk View";
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
 
@@ -576,20 +578,18 @@ win_t* init_disk_log() {
     scrollok(text_window, 1);
     wattrset(text_window, COLOR_PAIR(2));
 
-    const char title[] = "Disk View";
     title_print(title_window, (main_width - (int)strlen(title)) / 2, title);
 
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    win_t* log_window = malloc(sizeof(win_t));
-    (*log_window) = (win_t) {
-        .main_window = main_window,
-        .text_window = text_window,
-        .title_window = title_window,
-    };
+    win_disk_t *win = (win_disk_t *)malloc(sizeof(win_disk_t));
+    win->win.main_window = main_window;
+    win->win.text_window = text_window;
+    win->win.title_window = title_window;
+    win->buffer_rs = (char *)malloc(sizeof(char) * WIN_DISK_BUFFER_RS_SIZE);
 
-    return log_window;
+    return win;
 }
 
 win_t* init_res_acq_log() {
@@ -618,90 +618,6 @@ win_t* init_res_acq_log() {
     };
 
     return log_window;
-}
-
-void refresh_disk_title_window() {
-    //    pthread_mutex_lock(&print_mutex);
-    char* disk_direction = (char*)malloc(sizeof(char) * 32);
-    char* disk_track = (char*)malloc(sizeof(char) * 32);
-    char* disk_velocity = (char*)malloc(sizeof(char) * 32);
-    char* disk_quantity = (char*)malloc(sizeof(char) * 32);
-    sprintf(disk_direction, "DIR: %s ",
-            disk_general_log->forward_dir ? "F" : "B");
-    int disk_velocity_size
-        = sprintf(disk_velocity, "AngV: %d rpm", disk_general_log->angular_v);
-    sprintf(disk_track, "Track: %d Requests: %d", disk_general_log->curr_track, disk_general_log->pending_requests_size);
-    int disk_qtd_size
-        = sprintf(disk_quantity, "R: %d W: %d",
-                  disk_general_log->r_req_count, disk_general_log->w_req_count);
-
-    const char title[] = "Disk View";
-    wclear(disk_window->title_window);
-
-    wattron(disk_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    wmove(disk_window->title_window, 1, 1);
-    wprintw(disk_window->title_window, "%s", disk_direction);
-    wprintw(disk_window->title_window, "%s", disk_track);
-    mvwprintw(disk_window->title_window, 1, (COLS / 2) - disk_qtd_size - 1,
-              "%s", disk_quantity);
-    mvwprintw(disk_window->title_window, 1,
-              (COLS / 2) - disk_qtd_size - 2 - disk_velocity_size, "%s",
-              disk_velocity);
-    title_print(disk_window->title_window, (COLS / 2 - (int)strlen(title)) / 2,
-                title);
-    wattron(disk_window->title_window, COLOR_PAIR(3) | A_BOLD);
-    free(disk_direction);
-    free(disk_track);
-    free(disk_velocity);
-    free(disk_quantity);
-    //    pthread_mutex_unlock(&print_mutex);
-}
-
-_Noreturn void* refresh_disk_log() {
-    sem_wait(&disk_mutex);
-    list_node_t* i = disk_log_list->head;
-
-    while (1) {
-        pthread_mutex_lock(&print_mutex);
-        refresh_disk_title_window();
-        for (; i != NULL; i = i->next) {
-            disk_log_info_t* disk_info = ((disk_log_info_t*)i->content);
-
-            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, "Process ");
-
-            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(disk_window->text_window, "%s ", disk_info->proc_name);
-
-            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, "has ");
-
-            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            if (disk_info->is_read) {
-                wprintw(disk_window->text_window, "read ");
-            } else {
-                wprintw(disk_window->text_window, "written ");
-            }
-
-            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, "on track ");
-
-            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(disk_window->text_window, "%d", disk_info->track);
-
-            wattron(disk_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(disk_window->text_window, " with a turnaround of ");
-
-            wattron(disk_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(disk_window->text_window, "%du.t.\n", disk_info->turnaround);
-        }
-        pthread_mutex_unlock(&print_mutex);
-
-        i = disk_log_list->tail;
-
-        sem_wait(&disk_mutex);
-        i = i->next;
-    }
 }
 
 win_t* init_io_log() {
@@ -891,7 +807,7 @@ FWIN_REFRESH(memory) {
 
         pthread_mutex_lock(&print_mutex);
 
-        /* Refresh the memory window title */
+        /* It refreshes the memory window title */
         WIN_REFRESH_TITLE(memory);
 
         FOREACH(kernel->seg_table.seg_list, segment_t *) {
@@ -932,11 +848,108 @@ FWIN_REFRESH(memory) {
 }
 
 /*
+ * Disk View
+ */
+
+/**
+ * It refreshes the disk window title, such that the
+ * information displayed together with the title will
+ * be updated as well.
+ */
+FWIN_REFRESH_TITLE(disk) {
+    const char title[] = "Disk View";
+    const int wlen = sprintf(win_disk->buffer_rs, "AngV: %d rpm R: %d W: %d",
+                             disk_general_log->angular_v,
+                             disk_general_log->r_req_count,
+                             disk_general_log->w_req_count);
+
+    /* It clears the title window to write the (possibly updated) information */
+    wclear(win_disk->win.title_window);
+
+    wattron(win_disk->win.title_window, COLOR_PAIR(1) | A_BOLD);
+    wmove(win_disk->win.title_window, 1, 1);
+
+    /* It prints the related disk information on the left side of the disk view */
+    /* title. In this case, the direction, track and amount of pending requests */
+    /* for disk operation is being shown. */
+    wprintw(win_disk->win.title_window, "DIR: %s Track: %d Requests: %d",
+            disk_general_log->forward_dir ? "F" : "B",
+            disk_general_log->curr_track, disk_general_log->pending_requests_size);
+
+    /* It prints the related disk information on the right side of the disk view */
+    /* title. In this case, the disk's current angular velocity, the amount of */
+    /* read/write requests done. */
+    mvwprintw(win_disk->win.title_window, 1, (COLS / 2) - wlen - 1,
+              "%s", win_disk->buffer_rs);
+
+    /* It prints the disk window title in the middle of the header */
+    title_print(win_disk->win.title_window, (COLS / 2 - (int)strlen(title)) / 2,
+                title);
+
+    wattron(win_disk->win.title_window, COLOR_PAIR(3) | A_BOLD);
+}
+
+/**
+ * Thread Function:
+ *  It refreshes the disk window completely, that is,
+ *  the title and the text information will be updated.
+ */
+FWIN_REFRESH(disk) {
+    sem_wait(&disk_mutex);
+    list_node_t *i = disk_log_list->head;
+
+    INFINITE_LOOP {
+        pthread_mutex_lock(&print_mutex);
+
+        /* It refreshes the disk window title */
+        WIN_REFRESH_TITLE(disk);
+
+        for (; i != NULL; i = i->next) {
+            disk_log_info_t *disk_info = ((disk_log_info_t*)i->content);
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_disk->win.text_window, "Process ");
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(win_disk->win.text_window, "%s ", disk_info->proc_name);
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_disk->win.text_window, "has ");
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(3) | A_NORMAL);
+            if (disk_info->is_read) {
+                wprintw(win_disk->win.text_window, "read ");
+            } else {
+                wprintw(win_disk->win.text_window, "written ");
+            }
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_disk->win.text_window, "on track ");
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(win_disk->win.text_window, "%d", disk_info->track);
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_disk->win.text_window, " with a turnaround of ");
+
+            wattron(win_disk->win.text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(win_disk->win.text_window, "%du.t.\n", disk_info->turnaround);
+        }
+        pthread_mutex_unlock(&print_mutex);
+
+        i = disk_log_list->tail;
+
+        sem_wait(&disk_mutex);
+        i = i->next;
+    }
+}
+
+/*
  * Resource Acquisition View
  */
 
 /**
- * It refreshes the resource acquisition title, such that
+ * It refreshes the resource acquisition window title, such that
  * the information displayed together with the title
  * will be updated as well.
  */
@@ -954,7 +967,7 @@ FWIN_REFRESH_TITLE(res_acq) {
     wprintw(res_acq_window->title_window, "Semaphore Count: %d Blocked: %d",
             kernel->sem_table.len, sem_blocked_count());
 
-    /* It prints the resource acquisition view title at the header at the middle */
+    /* It prints the resource acquisition view title in the middle of the header */
     title_print(res_acq_window->title_window,
                 (COLS / 2 - (int)strlen(title)) / 2, title);
 

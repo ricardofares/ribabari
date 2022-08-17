@@ -16,6 +16,12 @@
 #define TITLE_OFFSET 2
 #define BOX_SIZE 2
 
+#undef WIN_CREATE
+#define WIN_CREATE(winn) win_##winn##_create()
+
+#undef FWIN_CREATE
+#define FWIN_CREATE(winn) win_##winn##_t *WIN_CREATE(winn)
+
 #undef WIN_REFRESH
 #define WIN_REFRESH(win) refresh_##win##_log()
 
@@ -30,6 +36,9 @@
 
 #undef WIN_MEM_BUFFER_RS_SIZE
 #define WIN_MEM_BUFFER_RS_SIZE (64)
+
+#undef WIN_DISK_BUFFER_RS_SIZE
+#define WIN_DISK_BUFFER_RS_SIZE (64)
 
 #undef INFINITE_LOOP
 #define INFINITE_LOOP while (1)
@@ -59,7 +68,25 @@ typedef struct {
      * to the memory view title.
      */
     char *buffer_rs;
-} win_mem_t;
+} win_memory_t;
+
+typedef struct {
+    /**
+     * Window structure used to display the
+     * disk view window.
+     */
+    win_t win;
+
+    /* Additional Information */
+    /**
+     * This buffer is used to display information
+     * at the right side of the disk window title.
+     * Also, this buffer is used to provide alignment
+     * with the right displayed content with relation
+     * to the disk view title.
+     */
+    char *buffer_rs;
+} win_disk_t;
 
 typedef enum main_menu_choices {
     CREATE,
@@ -122,8 +149,8 @@ _Noreturn void* refresh_logs();
 
 win_t* init_io_log();
 win_t* init_process_log();
-win_mem_t* win_mem_create();
-win_t* init_disk_log();
+FWIN_CREATE(memory);
+FWIN_CREATE(disk);
 win_t* init_res_acq_log();
 
 FWIN_REFRESH_TITLE(disk);
