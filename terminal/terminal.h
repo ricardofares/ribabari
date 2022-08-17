@@ -14,8 +14,22 @@
 #define ENTER_KEY 10
 #define BOX_OFFSET 2
 #define TITLE_OFFSET 2
-
 #define BOX_SIZE 2
+
+#undef WIN_REFRESH
+#define WIN_REFRESH(win) refresh_##win##_log()
+
+#undef FWIN_REFRESH
+#define FWIN_REFRESH(win) _Noreturn void *WIN_REFRESH(win)
+
+#undef WIN_REFRESH_TITLE
+#define WIN_REFRESH_TITLE(win) refresh_##win##_window_title()
+
+#undef FWIN_REFRESH_TITLE
+#define FWIN_REFRESH_TITLE(win) void WIN_REFRESH_TITLE(win)
+
+#undef WIN_MEM_BUFFER_RS_SIZE
+#define WIN_MEM_BUFFER_RS_SIZE (64)
 
 static const int EXIT = -1;
 static const long SECOND_IN_US = 1000000L;
@@ -25,6 +39,24 @@ typedef struct {
     WINDOW *text_window;
     WINDOW *title_window;
 } win_t;
+
+typedef struct {
+    /**
+     * Window structure used to display the
+     * memory view window.
+     */
+    win_t win;
+
+    /* Additional Information */
+    /**
+     * This buffer is used to display information
+     * at the right side of the memory window title.
+     * Also, this buffer is used to provide alignment
+     * with the right displayed content with relation
+     * to the memory view title.
+     */
+    char *buffer_rs;
+} win_mem_t;
 
 typedef enum main_menu_choices {
     CREATE,
@@ -58,7 +90,6 @@ typedef struct {
     M("Toggle Resource Acquisition View", TOGGLE_RESOURCE_VIEW)                \
     M("Exit", EXIT)                                                            \
 
-#define ONE_GIGABIT 1073741824
 void menu_loop(menu_t* main_menu, void (*func)(int));
 
 void init_screen();
@@ -79,22 +110,22 @@ char* get_input_from_window(char* title, coordinates_t coordinates,
                             int buffer_size);
 void print_with_window(char* string, char* title, int y, int x);
 
-_Noreturn void* refresh_process_log();
-_Noreturn void* refresh_memory_log();
-_Noreturn void* refresh_disk_log();
-_Noreturn void* refresh_io_log();
+FWIN_REFRESH(process);
+FWIN_REFRESH(memory);
+FWIN_REFRESH(disk);
+FWIN_REFRESH(io);
+FWIN_REFRESH(res_acq);
 _Noreturn void* refresh_logs();
-_Noreturn void* refresh_res_acq_log();
 
 win_t* init_io_log();
 win_t* init_process_log();
-win_t* init_memory_log();
+win_mem_t* win_mem_create();
 win_t* init_disk_log();
 win_t* init_res_acq_log();
 
-void refresh_disk_title_window();
-void refresh_memory_title_window();
-void refresh_res_acq_title_window();
+FWIN_REFRESH_TITLE(disk);
+FWIN_REFRESH_TITLE(memory);
+FWIN_REFRESH_TITLE(res_acq);
 
 /* Internal Terminal Function Prototypes */
 

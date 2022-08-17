@@ -26,7 +26,7 @@ disk_log_t* disk_general_log;
 io_log_t* io_general_log;
 
 win_t* process_window;
-win_t* memory_window;
+win_mem_t* win_mem;
 win_t* disk_window;
 win_t* io_window;
 win_t* menu_window;
@@ -93,11 +93,11 @@ _Noreturn void* refresh_logs() {
         wrefresh(process_window->main_window);
 
         if (r_view == 0) {
-	    wattrset(memory_window->title_window, COLOR_PAIR(3));
-            box(memory_window->title_window, 0, 0);
-            box(memory_window->main_window, 0, 0);
-            wrefresh(memory_window->main_window);
-            wrefresh(memory_window->title_window);
+	        wattrset(win_mem->win.title_window, COLOR_PAIR(3));
+            box(win_mem->win.title_window, 0, 0);
+            box(win_mem->win.main_window, 0, 0);
+            wrefresh(win_mem->win.main_window);
+            wrefresh(win_mem->win.title_window);
         } else {
 	    wattrset(res_acq_window->title_window, COLOR_PAIR(3));
             box(res_acq_window->title_window, 0, 0);
@@ -146,7 +146,7 @@ int begin_terminal() {
     process_window = init_process_log();
     pthread_create(&log_thread, NULL, refresh_process_log, NULL);
 
-    memory_window = init_memory_log();
+    win_mem = win_mem_create();
     pthread_create(&memory_thread, NULL, refresh_memory_log, NULL);
 
     disk_window = init_disk_log();
@@ -508,28 +508,21 @@ _Noreturn void* refresh_process_log() {
     }
 }
 
-void refresh_memory_title_window() {
-    // Print Memory Remaining the title
-
-    char *usage_buffer = malloc(sizeof(char) * 64);
-    int usage_buffer_size = sprintf(usage_buffer, "LSS: %d Kbytes Use: %.1lf%%",
-                                    max_seg_size() >> 10,
-                                    (ONE_GIGABIT - kernel->seg_table.remaining) * 100.0 / ONE_GIGABIT);
-
-    wclear(memory_window->title_window);
-    wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %d Kbytes",
-              kernel->seg_table.remaining >> 10);
-    mvwprintw(memory_window->title_window, 1,
-              (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2), "%s", usage_buffer);
-    wattron(memory_window->title_window, COLOR_PAIR(3));
-
+FWIN_REFRESH_TITLE(memory) {
     const char title[] = "Memory View";
+    const int wlen = sprintf(win_mem->buffer_rs, "LSS: %d Kbytes Use: %.1lf%%", max_seg_size() >> 10,
+                             (1.0 - (double) kernel->seg_table.remaining / GIGABYTE) * 100.0);
 
-    wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_window->title_window, 1,
-              (COLS / 2 - (int)strlen(title)) / 2, title);
-    wattron(memory_window->title_window, COLOR_PAIR(3) | A_BOLD);
+    wclear(win_mem->win.title_window);
+    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(win_mem->win.title_window, 1, 1, "Remaining: %d Kbytes", kernel->seg_table.remaining >> 10);
+    mvwprintw(win_mem->win.title_window, 1, (COLS >> 1) - wlen - (BOX_SIZE >> 1), "%s", win_mem->buffer_rs);
+    wattron(win_mem->win.title_window, COLOR_PAIR(3));
+
+    wattron(win_mem->win.title_window, COLOR_PAIR(1) | A_BOLD);
+    mvwprintw(win_mem->win.title_window, 1,
+              ((COLS >> 1) - ((int)strlen(title)) >> 1), title);
+    wattron(win_mem->win.title_window, COLOR_PAIR(3) | A_BOLD);
 }
 
 _Noreturn void* refresh_memory_log() {
@@ -537,44 +530,46 @@ _Noreturn void* refresh_memory_log() {
     while (1) {
 
         sem_wait(&mem_mutex);
-        wmove(memory_window->text_window, 0, 0);
-        wclear(memory_window->text_window);
+        wmove(win_mem->win.text_window, 0, 0);
+        wclear(win_mem->win.text_window);
 
         pthread_mutex_lock(&print_mutex);
-        refresh_memory_title_window();
+
+        WIN_REFRESH_TITLE(memory);
+
         for (list_node_t* i = seg_list->head; i != NULL; i = i->next) {
             const segment_t* seg = ((segment_t*)i->content);
             char* buffer = malloc(100);
 
-            wattrset(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_window->text_window, "ID: ");
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "ID: ");
 
-            wattrset(memory_window->text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
             snprintf(buffer, 100, "%2d, ", seg->id);
-            wprintw(memory_window->text_window, "%s", buffer);
+            wprintw(win_mem->win.text_window, "%s", buffer);
 
-            wattrset(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_window->text_window, "SegSize: ");
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "SegSize: ");
 
-            wattrset(memory_window->text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
             snprintf(buffer, 100, "%7d kb, ", seg->size / 1024);
-            wprintw(memory_window->text_window, "%s", buffer);
+            wprintw(win_mem->win.text_window, "%s", buffer);
 
-            wattrset(memory_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(memory_window->text_window, "Pages: ");
+            wattrset(win_mem->win.text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(win_mem->win.text_window, "Pages: ");
 
-            wattrset(memory_window->text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
+            wattrset(win_mem->win.text_window, COLOR_PAIR(3) | COLOR_PAIR(1) | A_BOLD);
             const int p_inuse_index = page_inuse_index(seg);
             if (p_inuse_index == -1)
                 snprintf(buffer, 100, "%d available.\n", seg->page_qtd);
             else
                 snprintf(buffer, 100, "using %d of %d.\n", p_inuse_index,
                          seg->page_qtd);
-            wprintw(memory_window->text_window, "%s", buffer);
+            wprintw(win_mem->win.text_window, "%s", buffer);
 
             // wattroff(memory_window->text_window, COLOR_PAIR(2));
 
-            refresh_memory_title_window();
+            WIN_REFRESH_TITLE(memory);
         }
         pthread_mutex_unlock(&print_mutex);
     }
@@ -608,31 +603,30 @@ win_t* init_process_log() {
     return log_window;
 }
 
-win_t* init_memory_log() {
-    const int main_height = LINES / 2;
-    const int main_width = COLS / 2;
+win_mem_t *win_mem_create() {
+    const char title[] = "Memory View";
+    const int main_height = LINES >> 1;
+    const int main_width = COLS >> 1;
 
-    WINDOW* main_window = newwin(main_height, main_width, LINES / 2, COLS / 2);
+    WINDOW* main_window = newwin(main_height, main_width, LINES >> 1, COLS >> 1);
     WINDOW* text_window = derwin(
         main_window, main_height - TITLE_OFFSET - BOX_OFFSET,
-        main_width - BOX_OFFSET - 1, (BOX_OFFSET / 2) + TITLE_OFFSET, 1);
+        main_width - BOX_OFFSET - 1, (BOX_OFFSET >> 1) + TITLE_OFFSET, 1);
     WINDOW* title_window = derwin(main_window, 3, main_width, 0, 0);
     scrollok(text_window, 1);
 
-    char title[] = "Memory View";
-    title_print(title_window, (main_width - (int)strlen(title)) / 2, title);
+    title_print(title_window, (main_width - (int)strlen(title)) >> 1, title);
 
     wattrset(main_window, COLOR_PAIR(3));
     wattrset(title_window, COLOR_PAIR(3));
 
-    win_t* log_window = malloc(sizeof(win_t));
-    (*log_window) = (win_t) {
-        .main_window = main_window,
-        .text_window = text_window,
-        .title_window = title_window,
-    };
+    win_mem_t *win = (win_mem_t *)malloc(sizeof(win_mem_t));
+    win->win.main_window = main_window;
+    win->win.text_window = text_window;
+    win->win.title_window = title_window;
+    win->buffer_rs = (char *)malloc(sizeof(char) * WIN_MEM_BUFFER_RS_SIZE);
 
-    return log_window;
+    return win;
 }
 
 win_t* init_disk_log() {
