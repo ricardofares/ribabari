@@ -105,7 +105,7 @@ _Noreturn void* refresh_logs() {
             wrefresh(res_acq_window->main_window);
 
             pthread_mutex_lock(&print_mutex);
-            refresh_res_acq_title_window();
+            WIN_REFRESH_TITLE(res_acq);
             pthread_mutex_unlock(&print_mutex);
         }
 
@@ -704,80 +704,6 @@ _Noreturn void* refresh_disk_log() {
     }
 }
 
-void refresh_res_acq_title_window() {
-    char* left_title_string = (char*)malloc(sizeof(char) * 16);
-    sprintf(left_title_string, "Semaphore Count: %d Blocked: %d",
-            kernel->sem_table.len, sem_blocked_count());
-
-    const char title[] = "Resource Acquisition View";
-    wclear(res_acq_window->title_window);
-
-    wattron(res_acq_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    wmove(res_acq_window->title_window, 1, 1);
-    wprintw(res_acq_window->title_window, "%s", left_title_string);
-
-    title_print(res_acq_window->title_window, (COLS / 2 - (int)strlen(title)) / 2,
-                title);
-
-    wattron(res_acq_window->title_window, COLOR_PAIR(3) | A_BOLD);
-    free(left_title_string);
-}
-
-
-_Noreturn void* refresh_res_acq_log() {
-    sem_wait(&res_acq_mutex);
-
-    list_node_t* i = res_acq_log_list->head;
-
-    while (1) {
-        pthread_mutex_lock(&print_mutex);
-        refresh_res_acq_title_window();
-        for (; i != NULL; i = i->next) {
-            res_acq_log_t* log = ((res_acq_log_t *)i->content);
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(res_acq_window->text_window, "Process ");
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(res_acq_window->text_window, "%s ", log->proc_name);
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
-
-            if (!(log->acq && log->blocked)) {
-                wprintw(res_acq_window->text_window, "has ");
-
-                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(res_acq_window->text_window, "%s ", log->acq ? "acquired" : "released");
-            } else {
-                wprintw(res_acq_window->text_window, "has been ");
-
-                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-                wprintw(res_acq_window->text_window, "blocked", log);
-
-                wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
-                wprintw(res_acq_window->text_window, ", waiting for ");
-            }
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(res_acq_window->text_window, "the semaphore ");
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
-            wprintw(res_acq_window->text_window, "%s", log->sem_name);
-
-            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
-            wprintw(res_acq_window->text_window, ".\n");
-        }
-
-        pthread_mutex_unlock(&print_mutex);
-
-        i = res_acq_log_list->tail;
-
-        sem_wait(&res_acq_mutex);
-
-        i = i->next;
-    }
-}
-
 win_t* init_io_log() {
     const int main_height = LINES / 2;
     const int main_width = COLS / 2;
@@ -1005,6 +931,97 @@ FWIN_REFRESH(memory) {
     free(buffer);
 }
 
+/*
+ * Resource Acquisition View
+ */
+
+/**
+ * It refreshes the resource acquisition title, such that
+ * the information displayed together with the title
+ * will be updated as well.
+ */
+FWIN_REFRESH_TITLE(res_acq) {
+    const char title[] = "Resource Acquisition View";
+
+    /* It clears the title window to write the (possibly updated) information */
+    wclear(res_acq_window->title_window);
+
+    wattron(res_acq_window->title_window, COLOR_PAIR(1) | A_BOLD);
+    wmove(res_acq_window->title_window, 1, 1);
+
+    /* It prints the resource acquisition view related information at the left */
+    /* side of the resource acquisition view title */
+    wprintw(res_acq_window->title_window, "Semaphore Count: %d Blocked: %d",
+            kernel->sem_table.len, sem_blocked_count());
+
+    /* It prints the resource acquisition view title at the header at the middle */
+    title_print(res_acq_window->title_window,
+                (COLS / 2 - (int)strlen(title)) / 2, title);
+
+    wattron(res_acq_window->title_window, COLOR_PAIR(3) | A_BOLD);
+}
+
+/**
+ * Thread Function:
+ *  It refreshes the resource acquisition window completely,
+ *  that is, the title and the text information will be updated.
+ */
+FWIN_REFRESH(res_acq) {
+    sem_wait(&res_acq_mutex);
+
+    list_node_t *i = res_acq_log_list->head;
+
+    INFINITE_LOOP {
+        pthread_mutex_lock(&print_mutex);
+
+        /* It refreshes the resource acquisition window title */
+        WIN_REFRESH_TITLE(res_acq);
+
+        for (; i != NULL; i = i->next) {
+            res_acq_log_t *log = (res_acq_log_t *)i->content;
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, "Process ");
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(res_acq_window->text_window, "%s ", log->proc_name);
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+
+            if (!(log->acq && log->blocked)) {
+                wprintw(res_acq_window->text_window, "has ");
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(res_acq_window->text_window, "%s ", log->acq ? "acquired" : "released");
+            } else {
+                wprintw(res_acq_window->text_window, "has been ");
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+                wprintw(res_acq_window->text_window, "blocked", log);
+
+                wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+                wprintw(res_acq_window->text_window, ", waiting for ");
+            }
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, "the semaphore ");
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(3) | A_NORMAL);
+            wprintw(res_acq_window->text_window, "%s", log->sem_name);
+
+            wattron(res_acq_window->text_window, COLOR_PAIR(1) | A_BOLD);
+            wprintw(res_acq_window->text_window, ".\n");
+        }
+
+        pthread_mutex_unlock(&print_mutex);
+
+        i = res_acq_log_list->tail;
+
+        sem_wait(&res_acq_mutex);
+
+        i = i->next;
+    }
+}
 
 /* Internal Terminal Function Definitions */
 
