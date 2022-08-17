@@ -511,15 +511,15 @@ _Noreturn void* refresh_process_log() {
 void refresh_memory_title_window() {
     // Print Memory Remaining the title
 
-    char* usage_buffer = malloc(16);
-    int usage_buffer_size = sprintf(usage_buffer, "Use: %.1lf%%",
-                                    (ONE_GIGABIT - kernel->seg_table.remaining)
-                                        * 100.0 / ONE_GIGABIT);
+    char *usage_buffer = malloc(sizeof(char) * 64);
+    int usage_buffer_size = sprintf(usage_buffer, "LSS: %d Kbytes Use: %.1lf%%",
+                                    max_seg_size() >> 10,
+                                    (ONE_GIGABIT - kernel->seg_table.remaining) * 100.0 / ONE_GIGABIT);
 
     wclear(memory_window->title_window);
     wattron(memory_window->title_window, COLOR_PAIR(1) | A_BOLD);
-    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %d Kbytes LSS: %d Kbytes",
-              kernel->seg_table.remaining >> 10, max_seg_size() >> 10);
+    mvwprintw(memory_window->title_window, 1, 1, "Remaining: %d Kbytes",
+              kernel->seg_table.remaining >> 10);
     mvwprintw(memory_window->title_window, 1,
               (COLS / 2) - usage_buffer_size - (BOX_SIZE / 2), "%s", usage_buffer);
     wattron(memory_window->title_window, COLOR_PAIR(3));
