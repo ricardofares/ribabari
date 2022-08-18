@@ -799,7 +799,7 @@ FWIN_REFRESH(memory) {
     char *const buffer = (char *)malloc(sizeof(char) * 100);
     const list_t *seg_list = kernel->seg_table.seg_list;
 
-    INFINITE_LOOP {
+    LOOP {
         sem_wait(&mem_mutex);
 
         wmove(win_mem->win.text_window, 0, 0);
@@ -898,7 +898,7 @@ FWIN_REFRESH(disk) {
     sem_wait(&disk_mutex);
     list_node_t *i = disk_log_list->head;
 
-    INFINITE_LOOP {
+    LOOP {
         pthread_mutex_lock(&print_mutex);
 
         /* It refreshes the disk window title */
@@ -984,7 +984,7 @@ FWIN_REFRESH(res_acq) {
 
     list_node_t *i = res_acq_log_list->head;
 
-    INFINITE_LOOP {
+    LOOP {
         pthread_mutex_lock(&print_mutex);
 
         /* It refreshes the resource acquisition window title */
