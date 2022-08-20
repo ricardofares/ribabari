@@ -12,14 +12,14 @@ typedef struct Semaphore {
      * name. Further, it is used
      * as identifier.
      */
-    char *name;
+    char   *name;
 
     /**
      * It represents the current
      * semaphore value in which
      * may or not be positive.
      */
-    int S;
+    int    S;
 
     /**
      * It contains the list of processes
@@ -27,7 +27,7 @@ typedef struct Semaphore {
      * available. This list is not NULL
      * since this semaphore is initialized.
      */
-    list_t* waiters;
+    list_t *waiters;
 
     /**
      * It represents the system binary
@@ -35,12 +35,22 @@ typedef struct Semaphore {
      * exclusion when handling the
      * "virtual" semaphore.
      */
-    sem_t mutex;
+    sem_t  mutex;
 } semaphore_t;
 
 typedef struct SemaphoreTable {
-    semaphore_t* table;
-    int len;
+    /**
+     * A dynamic-allocated array representing a
+     * semaphore table containing all registered
+     * semaphores.
+     */
+    semaphore_t *table;
+
+    /**
+     * The length of the dynamic-allocated semaphore
+     * table.
+     */
+    int          len;
 } semaphore_table_t;
 
 /* Semaphore Function Prototypes */
@@ -55,7 +65,7 @@ typedef struct SemaphoreTable {
  * @param name the semaphore name
  * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, const char* name, int S);
+void semaphore_init(semaphore_t *sem, const char *name, int S);
 
 /**
  * It register the semaphore with the specified
@@ -67,7 +77,7 @@ void semaphore_init(semaphore_t* sem, const char* name, int S);
  * @param name the semaphore name to be
  *             registered
  */
-void semaphore_register(semaphore_table_t* sem_table, const char* name);
+void semaphore_register(semaphore_table_t *sem_table, const char *name);
 
 /**
  * It returns a semaphore with the specified name if
@@ -77,7 +87,7 @@ void semaphore_register(semaphore_table_t* sem_table, const char* name);
  * @param sem_table the semaphore table
  * @param name the semaphore name
  */
-semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
+semaphore_t *semaphore_find(semaphore_table_t *sem_table, const char *name);
 
 /**
  * It request an access to the specified semaphore.
@@ -91,7 +101,7 @@ semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name);
  * @param sleep a function whose invoke causes
  *              the specified process to sleep
  */
-void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void));
+void semaphore_P(semaphore_t *sem, process_t *proc, void (*sleep)(void));
 
 /**
  * It releases an access to the specified semaphore.
@@ -105,7 +115,7 @@ void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void));
  * @param wakeup a function whose invoke causes
  *               a process to wake up
  */
-void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*));
+void semaphore_V(semaphore_t *sem, process_t *process, void (*wakeup)(process_t *));
 
 /* Semaphore Table Function Prototypes */
 
@@ -115,6 +125,6 @@ void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*
  *
  * @param sem_table a pointer to the semaphore table
  */
-void semaphore_table_init(semaphore_table_t* sem_table);
+void semaphore_table_init(semaphore_table_t *sem_table);
 
 #endif // OS_PROJECT_SEMAPHORE_H
