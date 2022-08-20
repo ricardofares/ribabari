@@ -106,11 +106,9 @@ exec 30
 
 :bell: **Note 2**: The synthetic program file does not need to have any file extesion or any special name. Therefore, you can give any name you would like to.
 
-:stop_sign: **Important**: The synthetic program file **MUST NOT** have a blank line at the end of the file (look at the file format given above again if needed), and the synthetic program file **MUST BE** in the **LR** format.
+:question: **Wait a minute, what are the available instructions?** Of course, we already know you'd ask that. Please, go to the next subsection where we present the available instructions.
 
-:question: **Wait a minute, what are the available instructions?** Of course, we already know you'd ask that. Please, go to the next subsection where we present the available CPU instructions.
-
-#### :desktop_computer: Available CPU Instructions
+#### :desktop_computer: Available Instructions
 The *available instructions* listed below are all instructions that can be insert into the sequence of instructions part of the synthetic program file. Therefore, the available instructions are
 
 - **exec k**: Indicate that the program is going to execute (something) for **k** units of time.
