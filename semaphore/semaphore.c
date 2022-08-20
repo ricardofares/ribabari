@@ -21,9 +21,9 @@
  * @param name the semaphore name
  * @param S the initial semaphore value
  */
-void semaphore_init(semaphore_t* sem, const char* name, const int S) {
-    sem->name = strdup(name);
-    sem->S = S;
+void semaphore_init(semaphore_t *sem, const char *name, const int S) {
+    sem->name    = strdup(name);
+    sem->S       = S;
     sem->waiters = list_init();
     sem_init(&sem->mutex, 0, 1);
 }
@@ -38,27 +38,30 @@ void semaphore_init(semaphore_t* sem, const char* name, const int S) {
  * @param name the semaphore name to be
  *             registered
  */
-void semaphore_register(semaphore_table_t* sem_table, const char* name) {
-    int i;
+void semaphore_register(semaphore_table_t *sem_table, const char *name) {
+    semaphore_t *n_table;
+    register int t;
 
     /* It checks if a semaphore with the specified name */
     /* has been already registered. */
-    for (i = 0; i < sem_table->len; i++)
-        if (strcmp(sem_table->table[i].name, name) == 0)
+    for (t = 0; t < sem_table->len; t++)
+        if (0 == strcmp(sem_table->table[t].name, name))
             return;
 
-    sem_table->table = (semaphore_t *)
+    n_table = (semaphore_t *)
             realloc(sem_table->table, sizeof(semaphore_t) * (sem_table->len + 1));
 
     /* It checks if the request for reallocation of semaphore table */
     /* has been failed */
-    if (!sem_table->table) {
+    if (!n_table) {
         printf("Not enough memory to reallocate the semaphore table.\n");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
-    semaphore_init(&sem_table->table[sem_table->len], name, 1);
+    sem_table->table = n_table;
     sem_table->len++;
+
+    semaphore_init(&sem_table->table[sem_table->len-1], name, 1);
 }
 
 /**
