@@ -109,7 +109,7 @@ semaphore_t *semaphore_find(semaphore_table_t *sem_table, const char *name) {
  * @param proc the process requesting access
  *             to this semaphore
  */
-void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void)) {
+void semaphore_P(semaphore_t *sem, process_t *proc, void (*sleep)(void)) {
     int blocked = 0;
 
     sem_wait(&sem->mutex);
@@ -139,7 +139,7 @@ void semaphore_P(semaphore_t* sem, process_t* proc, void (*sleep)(void)) {
  * @param wakeup a function whose invoke causes
  *               a process to wake up
  */
-void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*)) {
+void semaphore_V(semaphore_t *sem, process_t *process, void (*wakeup)(process_t *)) {
     sem_wait(&sem->mutex);
     sem->S++;
     if (sem->S <= 0) {
@@ -161,14 +161,17 @@ void semaphore_V(semaphore_t* sem, process_t* process, void (*wakeup)(process_t*
  *
  * @param sem_table a pointer to the semaphore table
  */
-void semaphore_table_init(semaphore_table_t* sem_table) {
-    sem_table->table = (semaphore_t *)malloc(0);
+void semaphore_table_init(semaphore_table_t *sem_table) {
+  semaphore_t *n_table;
 
-    /* It checks if the semaphore table could not be allocated */
-    if (!sem_table->table) {
-        printf("Not enough memory to allocate the semaphore table.\n");
-        exit(0);
-    }
+  n_table = (semaphore_t *)malloc(0);
 
-    sem_table->len = 0;
+  /* It checks if the semaphore table could not be allocated */
+  if (!n_table) {
+      printf("Not enough memory to allocate the semaphore table.\n");
+      exit(EXIT_FAILURE);
+  }
+
+  sem_table->table = n_table;
+  sem_table->len   = 0;
 }
