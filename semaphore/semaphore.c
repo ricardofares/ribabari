@@ -2,12 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../tools/constants.h"
 #include "semaphore.h"
 
 #ifndef OS_LOG_SYSTEM_LOADED
 #define OS_LOG_SYSTEM_LOADED
 #include "../terminal/log.h"
 #endif // OS_LOG_SYSTEM_LOADED
+
+#if OS_DEBUG || OS_SEM_DEBUG
+#define LOG_SEM(fmt) printf(fmt)
+#define LOG_SEM_A(fmt, ...) printf(fmt, __VA_ARGS__)
+#else
+#define LOG_SEM(fmt)
+#define LOG_SEM_A(fmt, ...)
+#endif // OS_DEBUG || OS_SEM_DEBUG
 
 /* Semaphore Function Definitions */
 
@@ -39,14 +48,20 @@ void semaphore_init(semaphore_t *sem, const char *name, const int S) {
  *             registered
  */
 void semaphore_register(semaphore_table_t *sem_table, const char *name) {
+    semaphore_t *sem;
     semaphore_t *n_table;
     register int t;
 
     /* It checks if a semaphore with the specified name */
     /* has been already registered. */
     for (t = 0; t < sem_table->len; t++)
-        if (0 == strcmp(sem_table->table[t].name, name))
-            return;
+    {
+      if (0 == strcmp(sem_table->table[t].name, name))
+      {
+        LOG_SEM_A("Semaphore %s has already been registered.\n", name);
+        return;
+      }
+    }
 
     n_table = (semaphore_t *)
             realloc(sem_table->table, sizeof(semaphore_t) * (sem_table->len + 1));
@@ -59,9 +74,12 @@ void semaphore_register(semaphore_table_t *sem_table, const char *name) {
     }
 
     sem_table->table = n_table;
-    sem_table->len++;
+    sem_table->len   = sem_table->len + 1;
+    sem              = &sem_table->table[sem_table->len-1];
 
-    semaphore_init(&sem_table->table[sem_table->len-1], name, 1);
+    semaphore_init(sem, name, 1);
+
+    LOG_SEM_A("Semaphore %s has been registered.\n", sem->name);
 }
 
 /**
@@ -72,11 +90,12 @@ void semaphore_register(semaphore_table_t *sem_table, const char *name) {
  * @param sem_table the semaphore table
  * @param name the semaphore name
  */
-semaphore_t* semaphore_find(semaphore_table_t* sem_table, const char* name) {
-    int i;
-    for (i = 0; i < sem_table->len; i++)
-        if (strcmp(sem_table->table[i].name, name) == 0)
-            return &sem_table->table[i];
+semaphore_t *semaphore_find(semaphore_table_t *sem_table, const char *name) {
+    semaphore_t *sem;
+    for (sem = sem_table->table; sem < &sem_table->table[sem_table->len]; sem++)
+      if (0 == strcmp(sem->name, name))
+        return sem;
+    LOG_SEM_A("Semaphore %s could not be found.\n", name);
     return NULL;
 }
 

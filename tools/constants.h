@@ -50,4 +50,14 @@
  */
 #define OS_FS_DEBUG 0
 
+/* Semaphore Debug Options */
+
+/**
+ * It enables the semaphore debugging system,
+ * as well as cited before, if OS_DEBUG is
+ * activated then this debugging system is
+ * activated as well.
+ */
+#define OS_SEM_DEBUG 0
+
 #endif // OS_PROJECT_CONSTANTS_H
