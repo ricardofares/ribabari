@@ -198,13 +198,17 @@ static process_t* parse_synthetic_program(FILE* fp, char* buf) {
     proc->seg_size = atoi(buf);
 
     fgets(buf, BUF_LEN_PARSE, fp);
-    buf[strlen(buf) - 1] = '\0';
+    
     /* It checks if there are semaphores to be read */
-    if (strcmp(buf, "\n") != 0)
+    if (strcmp(buf, "\n") != 0) 
+    {
+        buf[strlen(buf) - 1] = '\0';
         read_semaphores(proc, buf);
+ 
+        /* Jump the new line */
+        fgets(buf, BUF_LEN_PARSE, fp);   
+    }
 
-    /* Jump the new line */
-    fgets(buf, BUF_LEN_PARSE, fp);
     return proc;
 }
 
@@ -223,16 +227,17 @@ static process_t* parse_synthetic_program(FILE* fp, char* buf) {
 static instr_t* read_code(char* buf, FILE *fp, int *code_len) {
     instr_t* code;
     long int code_section;
-    int i;
+    int      i;
+    int      buflen;
 
     code_section = ftell(fp);
-    (*code_len) = 0;
+    (*code_len)  = 0;
 
     /* It calculates the code length */
     while (fgets(buf, BUF_LEN_PARSE, fp))
         (*code_len)++;
     fseek(fp, code_section, SEEK_SET);
-
+  
     code = (instr_t *)malloc(sizeof(instr_t) * (*code_len));
 
     /* It checks if the code could not be allocated */
@@ -244,7 +249,19 @@ static instr_t* read_code(char* buf, FILE *fp, int *code_len) {
     /* It parses the program code */
     i = 0;
     while (fgets(buf, BUF_LEN_PARSE, fp))
+    {
+        buflen = strlen(buf);
+
+        /* Ignore empty lines. If there is any! */
+        if (0 == buflen)
+          continue;
+
+        /* Ignore blank lines (LF or CRLF format) */
+        if ((0 == strcmp(buf, "\n")) || (0 == strcmp(buf, "\r\n")))
+          continue;
+
         instr_parse(&code[i++], buf, &kernel->sem_table);
+    }
 
     return code;
 }
