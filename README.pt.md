@@ -104,8 +104,6 @@ exec 30
 
 :bell: **Nota 2**: O arquivo de programa sintético não precisa ter qualquer extensão de arquivo ou qualquer nome especial. Portanto, você pode dar qualquer nome que deseja ao arquivo de programa sintético.
 
-:stop_sign: **Importante**: O arquivo de programa sintético **NÂO DEVE** ter uma linha em branco no final do arquivo (veja o formato do arquivo dado acima novamente se necessário), e o arquivo de programa sinttetico **DEVE ESTAR** no formato **LR**.
-
 :question: **Espere um minuto, quais são as instruções disponíveis?** É claro, nós já sabíamos que você perguntaria isto. Por favor, vá para a próxima subseção onde nós apresentaremos as instruções disponíveis.
 
 #### :desktop_computer: Instruções Disponíveis
